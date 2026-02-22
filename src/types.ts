@@ -36,7 +36,9 @@ export interface TrainingPost {
   pdfUrl?: string;
   summary: string;
   authorEmail?: string;
+  fileType?: string;
 }
+
 
 
 

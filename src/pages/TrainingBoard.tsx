@@ -45,6 +45,8 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
   const fetchPosts = async () => {
     setIsLoading(true);
     try {
+      if (!supabase) throw new Error('Supabase client not initialized');
+
       const { data, error } = await supabase
         .from('training_posts')
         .select('*')
@@ -53,13 +55,14 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
       if (error) throw error;
       setPosts(data || []);
     } catch (err) {
-      console.error('Error fetching posts:', err);
+      console.warn('Using Local Storage Fallback:', err);
       // Fallback to local storage if supabase fails or not configured
       const saved = localStorage.getItem('training_posts');
       if (saved) {
         setPosts(JSON.parse(saved));
       } else {
         setPosts(DUMMY_TRAININGS);
+        localStorage.setItem('training_posts', JSON.stringify(DUMMY_TRAININGS));
       }
     } finally {
       setIsLoading(false);
@@ -79,18 +82,27 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
 
     try {
       if (editingId) {
-        const { error } = await supabase
-          .from('training_posts')
-          .update({ title: newTitle, author: newAuthor, summary: newSummary })
-          .eq('id', editingId);
+        if (supabase) {
+          const { error } = await supabase
+            .from('training_posts')
+            .update({ title: newTitle, author: newAuthor, summary: newSummary })
+            .eq('id', editingId);
 
-        if (error) throw error;
-        fetchPosts();
+          if (error) throw error;
+          fetchPosts();
+        } else {
+          const updated = posts.map(p =>
+            p.id === editingId
+              ? { ...p, title: newTitle, author: newAuthor, summary: newSummary }
+              : p
+          );
+          savePosts(updated);
+        }
       } else {
         let fileUrl = '';
         let fileType = '';
 
-        if (selectedFile) {
+        if (selectedFile && supabase) {
           const fileExt = selectedFile.name.split('.').pop();
           const fileName = `${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
           const filePath = `training/${fileName}`;
@@ -119,18 +131,19 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
           fileType: fileType
         };
 
-        const { error } = await supabase
-          .from('training_posts')
-          .insert([newPostData]);
+        if (supabase) {
+          const { error } = await supabase
+            .from('training_posts')
+            .insert([newPostData]);
 
-        if (error) {
-          // If DB insert fails, fallback to local storage for demo
+          if (error) throw error;
+          fetchPosts();
+        } else {
           const newPost = { ...newPostData, id: Math.random().toString(36).substr(2, 9) } as TrainingPost;
           savePosts([newPost, ...posts]);
-        } else {
-          fetchPosts();
         }
       }
+
 
       // Reset form
       setNewTitle('');
@@ -163,6 +176,8 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
 
     if (window.confirm(`'${target.title}' 자료를 삭제하시겠습니까?`)) {
       try {
+        if (!supabase) throw new Error('Supabase client not initialized');
+
         const { error } = await supabase
           .from('training_posts')
           .delete()
@@ -182,7 +197,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
         fetchPosts();
         if (selectedPost?.id === id) setSelectedPost(null);
       } catch (err) {
-        console.error('Delete failed:', err);
+        console.warn('Delete fallback:', err);
         // Fallback for local storage
         const updated = posts.filter(p => p.id !== id);
         savePosts(updated);
@@ -365,7 +380,16 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all mr-2">
+                  <button
+                    onClick={() => {
+                      if (selectedPost.pdfUrl) {
+                        window.open(selectedPost.pdfUrl, '_blank');
+                      } else {
+                        alert('연결된 파일이 없습니다.');
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-all mr-2"
+                  >
                     <Download className="w-4 h-4" />
                     다운로드
                   </button>
@@ -400,7 +424,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
               <div className="flex-1 bg-slate-50 relative overflow-hidden flex">
                 {/* Simulated Viewer Area */}
                 <div className="flex-1 flex flex-col items-center overflow-auto p-4 md:p-12 scrollbar-hide">
-                  {(selectedPost.pdfUrl && !selectedPost.pdfUrl.includes('w3.org')) ? (
+                  {(selectedPost.pdfUrl && !selectedPost.pdfUrl.includes('sample.pdf') && !selectedPost.pdfUrl.includes('w3.org')) ? (
                     <iframe
                       src={`${selectedPost.pdfUrl}#toolbar=0`}
                       className="w-full h-full border-none bg-white rounded-lg shadow-2xl min-h-[800px]"
@@ -414,7 +438,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
                     <div className="w-full max-w-4xl bg-white shadow-2xl rounded-sm p-16 min-h-[1000px] relative">
                       {/* HWP Specific Badge */}
                       <div className="absolute top-8 right-8 px-3 py-1.5 bg-orange-100 text-orange-600 rounded-lg text-xs font-black uppercase tracking-widest border border-orange-200">
-                        {selectedPost.pdfUrl ? 'PDF Online Viewer' : 'HWP Online Viewer'}
+                        {selectedPost.fileType === 'hwp' ? 'HWP Online Viewer' : 'Document Preview'}
                       </div>
 
                       <div className="border-b-4 border-slate-900 pb-8 mb-12">
