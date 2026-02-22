@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface LoginProps {
     onLogin: (email: string, role: 'admin' | 'user') => void;
@@ -11,7 +12,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
+
         e.preventDefault();
         setError('');
         setIsLoading(true);
@@ -25,20 +27,39 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             return;
         }
 
-        // Check against registered users in localStorage
+        // Check against registered users
+        let regUser = null;
         const savedUsers = localStorage.getItem('registered_users');
         if (savedUsers) {
             const users = JSON.parse(savedUsers);
-            const regUser = users.find((u: any) => u.email === email);
+            regUser = users.find((u: any) => u.email === email);
+        }
 
-            if (regUser && regUser.password === password) {
-                setTimeout(() => {
-                    onLogin(email, regUser.role);
-                    setIsLoading(false);
-                }, 800);
-                return;
+        // If not in localStorage, try Supabase directly
+        if (!regUser && supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('registered_users')
+                    .select('*')
+                    .eq('email', email)
+                    .single();
+
+                if (!error && data) {
+                    regUser = data;
+                }
+            } catch (err) {
+                console.error('Supabase auth check failed:', err);
             }
         }
+
+        if (regUser && regUser.password === password) {
+            setTimeout(() => {
+                onLogin(email, regUser.role);
+                setIsLoading(false);
+            }, 800);
+            return;
+        }
+
 
 
         setTimeout(() => {

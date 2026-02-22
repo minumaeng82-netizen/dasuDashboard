@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download, RefreshCcw } from 'lucide-react';
 import { User } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../lib/supabase';
 
 export const UserManagement: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -14,22 +15,54 @@ export const UserManagement: React.FC = () => {
     const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
     useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const fetchUsers = async () => {
         try {
+            if (supabase) {
+                const { data, error } = await supabase
+                    .from('registered_users')
+                    .select('*')
+                    .order('name', { ascending: true });
+
+                if (!error && data) {
+                    setUsers(data as User[]);
+                    localStorage.setItem('registered_users', JSON.stringify(data));
+                    return;
+                }
+            }
+
             const savedUsers = localStorage.getItem('registered_users');
             if (savedUsers && savedUsers !== 'undefined') {
                 setUsers(JSON.parse(savedUsers));
             }
         } catch (err) {
-            console.error('Failed to parse registered_users from localStorage:', err);
+            console.error('Failed to load users:', err);
             setUsers([]);
         }
-    }, []);
+    };
 
 
-    const saveUsers = (newUsers: User[]) => {
+
+    const saveUsers = async (newUsers: User[]) => {
         setUsers(newUsers);
         localStorage.setItem('registered_users', JSON.stringify(newUsers));
+
+        if (supabase) {
+            try {
+                // Bulk upsert to Supabase
+                const { error } = await supabase
+                    .from('registered_users')
+                    .upsert(newUsers, { onConflict: 'email' });
+
+                if (error) console.error('Supabase Sync Error:', error);
+            } catch (err) {
+                console.error('Supabase connection error:', err);
+            }
+        }
     };
+
 
     const handleIndividualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -130,9 +163,21 @@ export const UserManagement: React.FC = () => {
         reader.readAsText(file);
     };
 
-    const deleteUser = (id: string) => {
-        saveUsers(users.filter(u => u.id !== id));
+    const deleteUser = async (id: string) => {
+        const updatedUsers = users.filter(u => u.id !== id);
+        setUsers(updatedUsers);
+        localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
+
+        if (supabase) {
+            const { error } = await supabase
+                .from('registered_users')
+                .delete()
+                .eq('id', id);
+
+            if (error) console.error('Failed to delete user from Supabase:', error);
+        }
     };
+
 
     const resetPassword = (id: string) => {
         const updatedUsers = users.map(u =>
