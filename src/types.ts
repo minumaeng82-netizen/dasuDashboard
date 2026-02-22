@@ -19,6 +19,7 @@ export interface Schedule {
   description?: string;
   important: boolean;
   authorEmail?: string;
+  isPrivate?: boolean;
 }
 
 

@@ -9,8 +9,10 @@ import {
   CheckCircle2,
   Search,
   Trash2,
-  Edit2
+  Edit2,
+  Lock
 } from 'lucide-react';
+
 import {
   format,
   addMonths,
@@ -47,6 +49,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
   const [newImportant, setNewImportant] = useState(false);
   const [newDescription, setNewDescription] = useState('');
   const [regDate, setRegDate] = useState('');
+  const [newIsPrivate, setNewIsPrivate] = useState(false);
 
   // Daily View Modal State
   const [isDailyViewOpen, setIsDailyViewOpen] = useState(false);
@@ -54,16 +57,24 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
   // Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'all' | 'mine'>('all');
 
   useEffect(() => {
-    const saved = localStorage.getItem('school_schedules');
-    if (saved) {
-      setSchedules(JSON.parse(saved));
-    } else {
+    try {
+      const saved = localStorage.getItem('school_schedules');
+      if (saved && saved !== 'undefined') {
+        setSchedules(JSON.parse(saved));
+      } else {
+        setSchedules(DUMMY_SCHEDULES);
+        localStorage.setItem('school_schedules', JSON.stringify(DUMMY_SCHEDULES));
+      }
+    } catch (err) {
+      console.error('Failed to parse schedules from localStorage:', err);
       setSchedules(DUMMY_SCHEDULES);
       localStorage.setItem('school_schedules', JSON.stringify(DUMMY_SCHEDULES));
     }
   }, []);
+
 
   const saveSchedules = (updated: Schedule[]) => {
     setSchedules(updated);
@@ -102,7 +113,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
     if (editingId) {
       const updated = schedules.map(s =>
         s.id === editingId
-          ? { ...s, title: newTitle, category: newCategory, important: newImportant, description: newDescription }
+          ? { ...s, title: newTitle, category: newCategory, important: newImportant, description: newDescription, date: regDate, isPrivate: newIsPrivate }
           : s
       );
       saveSchedules(updated);
@@ -114,7 +125,8 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
         category: newCategory,
         important: newImportant,
         description: newDescription,
-        authorEmail: user?.email
+        authorEmail: user?.email,
+        isPrivate: newIsPrivate
       };
       saveSchedules([...schedules, newEntry]);
     }
@@ -124,6 +136,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
     setNewCategory('기타');
     setNewImportant(false);
     setNewDescription('');
+    setNewIsPrivate(false);
     setEditingId(null);
     setIsModalOpen(false);
   };
@@ -134,6 +147,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
     setNewTitle(schedule.title);
     setNewCategory(schedule.category);
     setNewImportant(schedule.important);
+    setNewIsPrivate(schedule.isPrivate || false);
     setNewDescription(schedule.description || '');
     setRegDate(schedule.date);
     setIsDailyViewOpen(false);
@@ -210,10 +224,35 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
             </button>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
-            <button className="px-3 py-1.5 text-sm font-bold bg-white shadow-sm rounded-md text-blue-600">월간</button>
-            <button className="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">주간</button>
-            <button className="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">목록</button>
+          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setViewMode('all')}
+              className={cn(
+                "px-4 py-1.5 text-sm font-bold rounded-md transition-all",
+                viewMode === 'all'
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              학교 일정
+            </button>
+            <button
+              onClick={() => {
+                if (!isAuthenticated) {
+                  alert('로그인이 필요한 기능입니다.');
+                  return;
+                }
+                setViewMode('mine');
+              }}
+              className={cn(
+                "px-4 py-1.5 text-sm font-bold rounded-md transition-all",
+                viewMode === 'mine'
+                  ? "bg-white shadow-sm text-blue-600"
+                  : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              내 일정
+            </button>
           </div>
         </div>
 
@@ -237,9 +276,18 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
           {/* Days Grid */}
           <div className="flex-1 grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100">
             {calendarDays.map((day, i) => {
-              const daySchedules = schedules.filter(s =>
-                isSameDay(new Date(s.date), day)
-              );
+              const displaySchedules = schedules.filter(s => {
+                const sameDay = isSameDay(new Date(s.date), day);
+                if (!sameDay) return false;
+
+                // Show in 'Mine' view if it's my schedule
+                if (viewMode === 'mine') {
+                  return s.authorEmail === user?.email;
+                }
+
+                // In 'All' view: Show ONLY public schedules
+                return !s.isPrivate;
+              });
               const isCurrentMonth = isSameMonth(day, monthStart);
               const isToday = isSameDay(day, new Date());
               const isSelected = isSameDay(day, selectedDate);
@@ -284,7 +332,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                   </div>
 
                   <div className="flex-1 overflow-hidden space-y-1 mt-1">
-                    {daySchedules.slice(0, 2).map(schedule => (
+                    {displaySchedules.slice(0, 2).map(schedule => (
                       <div
                         key={schedule.id}
                         className={cn(
@@ -296,12 +344,14 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                         )}
                         title={schedule.title}
                       >
-                        {schedule.important && "● "}{schedule.title}
+                        {schedule.important && "● "}
+                        {schedule.isPrivate && <Lock className="inline w-2.5 h-2.5 mr-1" />}
+                        {schedule.title}
                       </div>
                     ))}
-                    {daySchedules.length > 2 && (
+                    {displaySchedules.length > 2 && (
                       <div className="text-[9px] font-bold text-slate-400 pl-1 mt-0.5">
-                        +{daySchedules.length - 2}개 더 있음...
+                        +{displaySchedules.length - 2}개 더 있음...
                       </div>
                     )}
                   </div>
@@ -342,6 +392,17 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
               <form onSubmit={handleAddSchedule} className="p-8 space-y-6">
                 <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700 ml-1">날짜 선택</label>
+                  <input
+                    type="date"
+                    value={regDate}
+                    onChange={(e) => setRegDate(e.target.value)}
+                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700 ml-1">일정 제목</label>
                   <input
                     type="text"
@@ -352,6 +413,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                     required
                   />
                 </div>
+
 
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -393,6 +455,35 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                     placeholder="추가적인 정보를 입력하세요 (옵션)"
                     className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all h-28 resize-none"
                   />
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                      newIsPrivate ? "bg-orange-100 text-orange-600" : "bg-blue-100 text-blue-600"
+                    )}>
+                      {newIsPrivate ? <Lock className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">공유 설정</p>
+                      <p className="text-xs text-slate-500">
+                        {newIsPrivate ? "나만 볼 수 있는 일정입니다." : "우리 학교 선생님들과 공유됩니다."}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNewIsPrivate(!newIsPrivate)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs font-bold transition-all border",
+                      newIsPrivate
+                        ? "bg-orange-600 text-white border-orange-500 shadow-lg shadow-orange-100"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    )}
+                  >
+                    {newIsPrivate ? "일정 공유하기" : "일정 공유하지 않음"}
+                  </button>
                 </div>
 
                 <div className="pt-4 flex gap-3">
@@ -444,14 +535,24 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
               </div>
 
               <div className="p-8 max-h-[500px] overflow-y-auto space-y-4">
-                {schedules.filter(s => isSameDay(new Date(s.date), viewDate)).length === 0 ? (
+                {schedules.filter(s => {
+                  const sameDay = isSameDay(new Date(s.date), viewDate);
+                  if (!sameDay) return false;
+                  if (viewMode === 'mine') return s.authorEmail === user?.email;
+                  return !s.isPrivate; // All view shows only public
+                }).length === 0 ? (
                   <div className="py-20 flex flex-col items-center justify-center text-slate-400 text-center">
                     <AlertCircle className="w-12 h-12 mb-4 opacity-20" />
-                    <p className="font-bold text-lg text-slate-300">이날은 등록된 일정이 없습니다.</p>
+                    <p className="font-bold text-lg text-slate-300">이날은 표시할 일정이 없습니다.</p>
                   </div>
                 ) : (
                   schedules
-                    .filter(s => isSameDay(new Date(s.date), viewDate))
+                    .filter(s => {
+                      const sameDay = isSameDay(new Date(s.date), viewDate);
+                      if (!sameDay) return false;
+                      if (viewMode === 'mine') return s.authorEmail === user?.email;
+                      return !s.isPrivate; // All view shows only public
+                    })
                     .map((schedule) => (
                       <div key={schedule.id} className="group p-6 bg-slate-50 hover:bg-white rounded-2xl border border-slate-100 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
                         <div className="flex items-start justify-between gap-4">
@@ -469,6 +570,12 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                               {schedule.important && (
                                 <span className="flex items-center gap-1 text-[10px] font-black text-red-500 px-2 py-1 bg-red-50 rounded-lg border border-red-100">
                                   ● 중요
+                                </span>
+                              )}
+                              {schedule.isPrivate && (
+                                <span className="flex items-center gap-1 text-[10px] font-black text-orange-600 px-2 py-1 bg-orange-50 rounded-lg border border-orange-100">
+                                  <Lock className="w-3 h-3" />
+                                  비공개
                                 </span>
                               )}
                             </div>

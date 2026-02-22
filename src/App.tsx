@@ -13,11 +13,17 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser && savedUser !== 'undefined') {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (err) {
+      console.error('Failed to parse user from localStorage:', err);
+      localStorage.removeItem('user');
     }
   }, []);
+
 
   const handleLogin = (email: string, role: 'admin' | 'user') => {
     // Check if we have additional user info in registered_users

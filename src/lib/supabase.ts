@@ -3,11 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase URL or Anon Key is missing. Database features will not work.');
+const isPlaceholder = supabaseUrl === 'your_supabase_project_url' || !supabaseUrl.startsWith('http');
+
+if (isPlaceholder || !supabaseAnonKey) {
+    console.warn('Supabase URL or Anon Key is missing or invalid. Database features will not work.');
 }
 
-// Only attempt to create the client if we have a URL, otherwise provide a dummy or handle null
-export const supabase = supabaseUrl
+export const supabase = (!isPlaceholder && supabaseUrl && supabaseAnonKey)
     ? createClient(supabaseUrl, supabaseAnonKey)
-    : null as any; // Using 'any' briefly to avoid breaking imports, or we could handle null in components
+    : null as any;
+

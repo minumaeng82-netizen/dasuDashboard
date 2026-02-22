@@ -14,11 +14,17 @@ export const UserManagement: React.FC = () => {
     const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
     useEffect(() => {
-        const savedUsers = localStorage.getItem('registered_users');
-        if (savedUsers) {
-            setUsers(JSON.parse(savedUsers));
+        try {
+            const savedUsers = localStorage.getItem('registered_users');
+            if (savedUsers && savedUsers !== 'undefined') {
+                setUsers(JSON.parse(savedUsers));
+            }
+        } catch (err) {
+            console.error('Failed to parse registered_users from localStorage:', err);
+            setUsers([]);
         }
     }, []);
+
 
     const saveUsers = (newUsers: User[]) => {
         setUsers(newUsers);

@@ -16,22 +16,80 @@ import { DUMMY_SCHEDULES, DUMMY_TRAININGS } from '../constants';
 import { format, addDays, subDays, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
+import { Schedule, TrainingPost } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface DashboardProps {
   isAuthenticated: boolean;
   isAdmin: boolean;
+  onNavigate?: (path: string) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, onNavigate }) => {
   const today = new Date();
   const [scheduleDate, setScheduleDate] = React.useState(today);
+  const [schedules, setSchedules] = React.useState<Schedule[]>([]);
+  const [trainings, setTrainings] = React.useState<TrainingPost[]>([]);
+
+  React.useEffect(() => {
+    fetchSchedules();
+    fetchTrainings();
+  }, []);
+
+  const fetchSchedules = () => {
+    try {
+      const saved = localStorage.getItem('school_schedules');
+      if (saved && saved !== 'undefined') {
+        setSchedules(JSON.parse(saved));
+      } else {
+        setSchedules(DUMMY_SCHEDULES);
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard schedules:', err);
+      setSchedules(DUMMY_SCHEDULES);
+    }
+  };
+
+  const fetchTrainings = async () => {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('training_posts')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(5);
+
+        if (!error && data) {
+          setTrainings(data);
+          return;
+        }
+      }
+
+      const saved = localStorage.getItem('training_posts');
+      if (saved && saved !== 'undefined') {
+        setTrainings(JSON.parse(saved).slice(0, 5));
+      } else {
+        setTrainings(DUMMY_TRAININGS.slice(0, 5));
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard trainings:', err);
+      setTrainings(DUMMY_TRAININGS.slice(0, 5));
+    }
+  };
+
 
   const formattedDate = format(today, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko });
   const time = format(today, 'HH:mm');
 
-  const selectedDaySchedules = DUMMY_SCHEDULES.filter(s =>
-    isSameDay(new Date(s.date), scheduleDate)
-  );
+  // Dashboard shows ONLY PUBLIC schedules or those where user is author (if logged in)
+  const selectedDaySchedules = schedules.filter(s => {
+    const isSame = isSameDay(new Date(s.date), scheduleDate);
+    if (!isSame) return false;
+
+    // Show if public OR if it's the user's private schedule (logic simplified here to match Calendar's "All" view)
+    return !s.isPrivate;
+  });
+
 
   const goToPreviousDay = () => setScheduleDate(prev => subDays(prev, 1));
   const goToNextDay = () => setScheduleDate(prev => addDays(prev, 1));
@@ -187,47 +245,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin }
         )}
 
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-2">두고두고 볼 것</h2>
+          <h2 className="text-2xl font-bold mb-2">두고두고 볼 것들</h2>
+
           <p className="text-slate-400 text-sm">자주 확인해야 하는 중요 공지 및 연수</p>
         </div>
 
         <div className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
-          {DUMMY_TRAININGS.map((post) => (
-            <button
-              key={post.id}
-              disabled={!isAuthenticated}
-              className={`w-full text-left p-5 bg-white/5 rounded-xl border border-white/10 transition-all group ${isAuthenticated ? 'hover:bg-white/10 cursor-pointer' : 'opacity-60 cursor-not-allowed'
-                }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">{post.author}</span>
-                {isAuthenticated && <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />}
-              </div>
-              <h3 className="font-bold text-lg mb-2 group-hover:text-blue-300 transition-colors">{post.title}</h3>
-              <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">
-                {post.summary}
-              </p>
-            </button>
-          ))}
-
+          {trainings.length === 0 ? (
+            <div className="py-12 text-center text-slate-500 border border-white/5 rounded-xl border-dashed">
+              <p className="text-sm">등록된 연수 자료가 없습니다.</p>
+            </div>
+          ) : (
+            trainings.map((post) => (
+              <button
+                key={post.id}
+                disabled={!isAuthenticated}
+                onClick={() => {
+                  if (post.pdfUrl) {
+                    window.open(post.pdfUrl, '_blank');
+                  } else if (onNavigate) {
+                    onNavigate('/training');
+                  }
+                }}
+                className={`w-full text-left p-5 bg-white/5 rounded-xl border border-white/10 transition-all group ${isAuthenticated ? 'hover:bg-white/10 cursor-pointer shadow-lg shadow-black/20' : 'opacity-60 cursor-not-allowed'
+                  }`}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">{post.author}</span>
+                  {isAuthenticated && <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />}
+                </div>
+                <h3 className="font-bold text-lg mb-2 group-hover:text-blue-300 transition-colors">{post.title}</h3>
+                <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">
+                  {post.summary}
+                </p>
+              </button>
+            ))
+          )}
         </div>
 
 
-        <div className="mt-8 pt-6 border-t border-white/10">
-          <div className="flex items-center gap-3 text-slate-400">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-              <UserIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-white">
-                {isAuthenticated ? '김다수 선생님' : '로그인 전'}
-              </p>
-              <p className="text-xs">
-                {isAuthenticated ? '오늘도 행복한 하루 되세요!' : '서비스 이용을 위해 로그인해주세요.'}
-              </p>
-            </div>
-          </div>
-        </div>
+
+
       </motion.div>
     </div>
   );
