@@ -1,21 +1,27 @@
 import React from 'react';
-import { 
-  Calendar as CalendarIcon, 
-  FileText, 
-  AlertCircle, 
+import {
+  Calendar as CalendarIcon,
+  FileText,
+  AlertCircle,
   ChevronRight,
   Clock,
   ExternalLink,
   Sun,
   BookOpen,
-  User
+  User as UserIcon
 } from 'lucide-react';
+
 import { DUMMY_SCHEDULES, DUMMY_TRAININGS } from '../constants';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { motion } from 'motion/react';
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin }) => {
   const today = new Date();
   const formattedDate = format(today, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko });
   const time = format(today, 'HH:mm');
@@ -27,7 +33,7 @@ export const Dashboard: React.FC = () => {
         {/* Top Row: Date & Weather */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Date Widget */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="md:col-span-2 bg-white rounded-2xl border border-slate-200 p-8 flex flex-col justify-center shadow-sm"
@@ -43,7 +49,7 @@ export const Dashboard: React.FC = () => {
           </motion.div>
 
           {/* Weather Widget */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -61,7 +67,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Bottom Row: Main Schedule */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -87,20 +93,21 @@ export const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                      schedule.category === '공문' ? 'bg-orange-100 text-orange-600' :
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${schedule.category === '공문' ? 'bg-orange-100 text-orange-600' :
                       schedule.category === '행사' ? 'bg-blue-100 text-blue-600' :
-                      'bg-slate-100 text-slate-600'
-                    }`}>
+                        'bg-slate-100 text-slate-600'
+                      }`}>
                       {schedule.category}
                     </span>
                     {schedule.important && <span className="text-[10px] font-bold text-red-500">● 중요</span>}
                   </div>
                   <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{schedule.title}</h3>
                 </div>
-                <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white rounded-lg transition-all">
-                  <ChevronRight className="w-5 h-5 text-slate-400" />
-                </button>
+                {isAuthenticated && (
+                  <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white rounded-lg transition-all">
+                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -108,12 +115,24 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Right Area (Col 9-12) */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
         className="col-span-12 lg:col-span-4 bg-slate-900 rounded-2xl p-8 shadow-xl text-white flex flex-col"
       >
+        {!isAuthenticated && (
+          <div className="bg-blue-600/20 border border-blue-500/30 rounded-xl p-4 mb-8 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-blue-100 italic">로그인이 필요합니다</p>
+              <p className="text-xs text-blue-300/80 mt-1 leading-relaxed">
+                상세 일정 확인 및 공문 조회 등 모든 기능을 사용하시려면 로그인해 주세요.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2">두고두고 볼 것</h2>
           <p className="text-slate-400 text-sm">자주 확인해야 하는 중요 공지 및 연수</p>
@@ -121,13 +140,15 @@ export const Dashboard: React.FC = () => {
 
         <div className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
           {DUMMY_TRAININGS.map((post) => (
-            <button 
+            <button
               key={post.id}
-              className="w-full text-left p-5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all group"
+              disabled={!isAuthenticated}
+              className={`w-full text-left p-5 bg-white/5 rounded-xl border border-white/10 transition-all group ${isAuthenticated ? 'hover:bg-white/10 cursor-pointer' : 'opacity-60 cursor-not-allowed'
+                }`}
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">{post.author}</span>
-                <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+                {isAuthenticated && <ExternalLink className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />}
               </div>
               <h3 className="font-bold text-lg mb-2 group-hover:text-blue-300 transition-colors">{post.title}</h3>
               <p className="text-sm text-slate-400 line-clamp-2 leading-relaxed">
@@ -135,14 +156,20 @@ export const Dashboard: React.FC = () => {
               </p>
             </button>
           ))}
-          
+
           {/* Quick Action Cards */}
           <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="p-4 bg-blue-600/20 border border-blue-500/30 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-blue-600/30 transition-colors">
+            <div
+              className={`p-4 bg-blue-600/20 border border-blue-500/30 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${isAuthenticated ? 'cursor-pointer hover:bg-blue-600/30' : 'opacity-40 cursor-not-allowed'
+                }`}
+            >
               <FileText className="w-6 h-6 text-blue-400" />
               <span className="text-xs font-bold">나이스 바로가기</span>
             </div>
-            <div className="p-4 bg-emerald-600/20 border border-emerald-500/30 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-emerald-600/30 transition-colors">
+            <div
+              className={`p-4 bg-emerald-600/20 border border-emerald-500/30 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${isAuthenticated ? 'cursor-pointer hover:bg-emerald-600/30' : 'opacity-40 cursor-not-allowed'
+                }`}
+            >
               <BookOpen className="w-6 h-6 text-emerald-400" />
               <span className="text-xs font-bold">에듀파인</span>
             </div>
@@ -152,11 +179,15 @@ export const Dashboard: React.FC = () => {
         <div className="mt-8 pt-6 border-t border-white/10">
           <div className="flex items-center gap-3 text-slate-400">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-              <User className="w-5 h-5" />
+              <UserIcon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">김다수 선생님</p>
-              <p className="text-xs">오늘도 행복한 하루 되세요!</p>
+              <p className="text-sm font-bold text-white">
+                {isAuthenticated ? '김다수 선생님' : '로그인 전'}
+              </p>
+              <p className="text-xs">
+                {isAuthenticated ? '오늘도 행복한 하루 되세요!' : '서비스 이용을 위해 로그인해주세요.'}
+              </p>
             </div>
           </div>
         </div>
@@ -164,3 +195,4 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+

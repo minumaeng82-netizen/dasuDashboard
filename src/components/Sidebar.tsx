@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  BookOpen, 
-  FileText, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Calendar,
+  BookOpen,
+  FileText,
+  Settings,
   LogOut,
   X
 } from 'lucide-react';
@@ -15,6 +15,7 @@ interface SidebarProps {
   onClose: () => void;
   currentPath: string;
   onNavigate: (path: string) => void;
+  isAdmin: boolean;
 }
 
 const MENU_ITEMS = [
@@ -24,12 +25,18 @@ const MENU_ITEMS = [
   { icon: FileText, label: '공문함', path: '/documents' },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath, onNavigate }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  onClose,
+  currentPath,
+  onNavigate,
+  isAdmin
+}) => {
   return (
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onClose}
         />
@@ -40,16 +47,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath, 
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">D</span>
+          <button
+            onClick={() => onNavigate('/')}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<span class="text-slate-900 font-bold">퇴근</span>';
+              }} />
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">다수교무통신</span>
-          </div>
+            <span className="text-white font-bold text-lg tracking-tight">정시퇴근</span>
+          </button>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-slate-800 rounded">
             <X className="w-5 h-5" />
           </button>
         </div>
+
 
         <nav className="p-4 space-y-1">
           {MENU_ITEMS.map((item) => (
@@ -61,8 +75,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath, 
               }}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                currentPath === item.path 
-                  ? "bg-blue-600 text-white" 
+                currentPath === item.path
+                  ? "bg-blue-600 text-white"
                   : "hover:bg-slate-800 hover:text-white"
               )}
             >
@@ -70,19 +84,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentPath, 
               <span className="font-medium">{item.label}</span>
             </button>
           ))}
+
+          {isAdmin && (
+            <button
+              onClick={() => {
+                onNavigate('/users');
+                onClose();
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                currentPath === '/users'
+                  ? "bg-blue-600 text-white"
+                  : "hover:bg-slate-800 hover:text-white text-blue-400"
+              )}
+            >
+              <Settings className="w-5 h-5" />
+              <span className="font-medium">사용자 관리</span>
+            </button>
+          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 w-full p-4 border-t border-slate-800">
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-colors">
             <Settings className="w-5 h-5" />
-            <span className="font-medium">설정</span>
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-900/20 hover:text-red-400 transition-colors mt-1">
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">로그아웃</span>
+            <span className="font-medium">내 설정</span>
           </button>
         </div>
       </aside>
     </>
   );
 };
+

@@ -1,5 +1,14 @@
 export type Category = '공문' | '복무' | '행사' | '연수' | '기타';
 
+export type UserRole = 'admin' | 'user';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+}
+
 export interface Schedule {
   id: string;
   title: string;
@@ -17,3 +26,4 @@ export interface TrainingPost {
   pdfUrl?: string;
   summary: string;
 }
+

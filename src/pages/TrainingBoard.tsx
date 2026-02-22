@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  Search, 
-  Plus, 
-  FileText, 
-  Download, 
-  Eye, 
+import {
+  Search,
+  Plus,
+  FileText,
+  Download,
+  Eye,
   MoreVertical,
   Filter,
   X
@@ -12,7 +12,12 @@ import {
 import { DUMMY_TRAININGS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
 
-export const TrainingBoard: React.FC = () => {
+interface TrainingBoardProps {
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+}
+
+export const TrainingBoard: React.FC<TrainingBoardProps> = ({ isAuthenticated, isAdmin }) => {
   const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
 
   return (
@@ -22,19 +27,33 @@ export const TrainingBoard: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">연수 게시판</h1>
           <p className="text-slate-500 mt-1">학교 내 각종 연수 자료 및 지침을 확인하세요.</p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-bold transition-colors shadow-sm">
-          <Plus className="w-5 h-5" />
-          자료 업로드
-        </button>
+        {(isAuthenticated || isAdmin) && (
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-bold transition-colors shadow-sm">
+            <Plus className="w-5 h-5" />
+            자료 업로드
+          </button>
+        )}
       </header>
+
+      {!isAuthenticated && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex gap-4 items-center">
+          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-amber-500 flex-shrink-0">
+            <Eye className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="font-bold text-amber-900">조회 제한 안내</h4>
+            <p className="text-sm text-amber-700">로그인 후에만 상세 자료 열람 및 다운로드가 가능합니다. 목록만 열람 중입니다.</p>
+          </div>
+        </div>
+      )}
 
       {/* Filters and Search */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="자료 제목, 부서명으로 검색..." 
+          <input
+            type="text"
+            placeholder="자료 제목, 부서명으로 검색..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm"
           />
         </div>
@@ -63,8 +82,8 @@ export const TrainingBoard: React.FC = () => {
           >
             <div className="h-40 bg-slate-100 flex items-center justify-center relative group">
               <FileText className="w-16 h-16 text-slate-300 group-hover:text-blue-200 transition-colors" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                <button 
+              <div className={`absolute inset-0 bg-black/40 transition-opacity flex items-center justify-center gap-3 ${isAuthenticated ? 'opacity-0 group-hover:opacity-100' : 'hidden'}`}>
+                <button
                   onClick={() => post.pdfUrl && setSelectedPdf(post.pdfUrl)}
                   className="p-2 bg-white rounded-full text-slate-900 hover:bg-blue-50 transition-colors"
                 >
@@ -90,9 +109,10 @@ export const TrainingBoard: React.FC = () => {
               </p>
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <span className="text-xs text-slate-400">{post.date}</span>
-                <button 
+                <button
+                  disabled={!isAuthenticated}
                   onClick={() => post.pdfUrl && setSelectedPdf(post.pdfUrl)}
-                  className="text-sm font-bold text-blue-600 hover:text-blue-700"
+                  className={`text-sm font-bold ${isAuthenticated ? 'text-blue-600 hover:text-blue-700' : 'text-slate-300 cursor-not-allowed'}`}
                 >
                   자세히 보기
                 </button>
@@ -101,6 +121,7 @@ export const TrainingBoard: React.FC = () => {
           </motion.div>
         ))}
       </div>
+
 
       {/* PDF Viewer Modal */}
       <AnimatePresence>
@@ -114,7 +135,7 @@ export const TrainingBoard: React.FC = () => {
             <div className="bg-white w-full h-full rounded-2xl overflow-hidden flex flex-col relative">
               <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
                 <h3 className="font-bold text-slate-900">문서 미리보기</h3>
-                <button 
+                <button
                   onClick={() => setSelectedPdf(null)}
                   className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                 >
@@ -122,8 +143,8 @@ export const TrainingBoard: React.FC = () => {
                 </button>
               </div>
               <div className="flex-1 bg-slate-800">
-                <iframe 
-                  src={`${selectedPdf}#toolbar=0`} 
+                <iframe
+                  src={`${selectedPdf}#toolbar=0`}
                   className="w-full h-full border-none"
                   title="PDF Viewer"
                 />

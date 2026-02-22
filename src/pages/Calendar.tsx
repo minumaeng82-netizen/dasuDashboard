@@ -1,28 +1,33 @@
 import React, { useState } from 'react';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  ChevronLeft,
+  ChevronRight,
   Plus,
   MoreHorizontal
 } from 'lucide-react';
-import { 
-  format, 
-  addMonths, 
-  subMonths, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  isSameMonth, 
-  isSameDay, 
-  addDays, 
-  eachDayOfInterval 
+import {
+  format,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  isSameMonth,
+  isSameDay,
+  addDays,
+  eachDayOfInterval
 } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { DUMMY_SCHEDULES } from '../constants';
 import { cn } from '../lib/utils';
 
-export const Calendar: React.FC = () => {
+interface CalendarProps {
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+}
+
+export const Calendar: React.FC<CalendarProps> = ({ isAuthenticated, isAdmin }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -48,13 +53,23 @@ export const Calendar: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">일정 관리</h1>
           <p className="text-slate-500 mt-1">학교의 모든 일정을 공유하고 관리하세요.</p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-bold transition-colors shadow-sm">
-          <Plus className="w-5 h-5" />
-          일정 등록
-        </button>
+        {(isAuthenticated || isAdmin) && (
+          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 font-bold transition-colors shadow-sm">
+            <Plus className="w-5 h-5" />
+            일정 등록
+          </button>
+        )}
       </header>
 
+      {!isAuthenticated && (
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex gap-3 items-center">
+          <MoreHorizontal className="w-5 h-5 text-blue-500" />
+          <p className="text-sm text-blue-700 font-medium">로그인하시면 개인별 맞춤 일정을 등록하고 관리할 수 있습니다.</p>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
+
         {/* Calendar Header */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
           <div className="flex items-center gap-4">
@@ -62,27 +77,27 @@ export const Calendar: React.FC = () => {
               {format(currentMonth, 'yyyy년 MM월')}
             </h2>
             <div className="flex items-center bg-slate-100 rounded-lg p-1">
-              <button 
+              <button
                 onClick={prevMonth}
                 className="p-1.5 hover:bg-white hover:shadow-sm rounded-md transition-all"
               >
                 <ChevronLeft className="w-5 h-5 text-slate-600" />
               </button>
-              <button 
+              <button
                 onClick={nextMonth}
                 className="p-1.5 hover:bg-white hover:shadow-sm rounded-md transition-all"
               >
                 <ChevronRight className="w-5 h-5 text-slate-600" />
               </button>
             </div>
-            <button 
+            <button
               onClick={() => setCurrentMonth(new Date())}
               className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
             >
               오늘
             </button>
           </div>
-          
+
           <div className="hidden md:flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
             <button className="px-3 py-1.5 text-sm font-bold bg-white shadow-sm rounded-md text-blue-600">월간</button>
             <button className="px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-700">주간</button>
@@ -95,8 +110,8 @@ export const Calendar: React.FC = () => {
           {/* Weekday Labels */}
           <div className="grid grid-cols-7 border-b border-slate-100">
             {weekDays.map((day, i) => (
-              <div 
-                key={day} 
+              <div
+                key={day}
                 className={cn(
                   "py-3 text-center text-xs font-bold uppercase tracking-wider",
                   i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-slate-400"
@@ -110,7 +125,7 @@ export const Calendar: React.FC = () => {
           {/* Days Grid */}
           <div className="flex-1 grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100">
             {calendarDays.map((day, i) => {
-              const daySchedules = DUMMY_SCHEDULES.filter(s => 
+              const daySchedules = DUMMY_SCHEDULES.filter(s =>
                 isSameDay(new Date(s.date), day)
               );
               const isCurrentMonth = isSameMonth(day, monthStart);
@@ -118,7 +133,7 @@ export const Calendar: React.FC = () => {
               const isSelected = isSameDay(day, selectedDate);
 
               return (
-                <div 
+                <div
                   key={day.toString()}
                   onClick={() => setSelectedDate(day)}
                   className={cn(
@@ -130,9 +145,9 @@ export const Calendar: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className={cn(
                       "text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full",
-                      !isCurrentMonth ? "text-slate-300" : 
-                      day.getDay() === 0 ? "text-red-500" : 
-                      day.getDay() === 6 ? "text-blue-500" : "text-slate-600",
+                      !isCurrentMonth ? "text-slate-300" :
+                        day.getDay() === 0 ? "text-red-500" :
+                          day.getDay() === 6 ? "text-blue-500" : "text-slate-600",
                       isToday && "bg-blue-600 text-white font-bold"
                     )}>
                       {format(day, 'd')}
@@ -143,17 +158,17 @@ export const Calendar: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="flex-1 overflow-y-auto space-y-1 mt-1 scrollbar-hide">
                     {daySchedules.map(schedule => (
-                      <div 
+                      <div
                         key={schedule.id}
                         className={cn(
                           "px-1.5 py-0.5 rounded text-[10px] font-bold truncate border",
                           schedule.category === '공문' ? "bg-orange-50 text-orange-600 border-orange-100" :
-                          schedule.category === '행사' ? "bg-blue-50 text-blue-600 border-blue-100" :
-                          schedule.category === '연수' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                          "bg-slate-50 text-slate-600 border-slate-200"
+                            schedule.category === '행사' ? "bg-blue-50 text-blue-600 border-blue-100" :
+                              schedule.category === '연수' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                "bg-slate-50 text-slate-600 border-slate-200"
                         )}
                       >
                         {schedule.title}
