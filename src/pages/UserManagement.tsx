@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download } from 'lucide-react';
+import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download, RefreshCcw } from 'lucide-react';
 import { User } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -8,6 +8,10 @@ export const UserManagement: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [newEmail, setNewEmail] = useState('');
+    const [newName, setNewName] = useState('');
+    const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
     useEffect(() => {
         const savedUsers = localStorage.getItem('registered_users');
@@ -19,6 +23,32 @@ export const UserManagement: React.FC = () => {
     const saveUsers = (newUsers: User[]) => {
         setUsers(newUsers);
         localStorage.setItem('registered_users', JSON.stringify(newUsers));
+    };
+
+    const handleIndividualSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newEmail || !newEmail.includes('@')) {
+            setMessage({ type: 'error', text: '유효한 이메일을 입력해주세요.' });
+            return;
+        }
+
+        if (users.find(u => u.email === newEmail)) {
+            setMessage({ type: 'error', text: '이미 등록된 이메일입니다.' });
+            return;
+        }
+
+        const newUser: User = {
+            id: newEmail, // Consistent with App.tsx login logic
+            email: newEmail,
+            name: newName || newEmail.split('@')[0],
+            role: newRole,
+            password: '123456'
+        };
+
+        saveUsers([...users, newUser]);
+        setMessage({ type: 'success', text: '사용자가 등록되었습니다.' });
+        setNewEmail('');
+        setNewName('');
     };
 
     const handleDownloadTemplate = () => {
@@ -62,10 +92,11 @@ export const UserManagement: React.FC = () => {
                     const [email, name, role] = line.split(',').map(s => s.trim());
                     if (email && email.includes('@')) {
                         newUsers.push({
-                            id: Math.random().toString(36).substr(2, 9),
+                            id: email,
                             email,
                             name: name || email.split('@')[0],
-                            role: (role === 'admin' || role === '관리자') ? 'admin' : 'user'
+                            role: (role === 'admin' || role === '관리자') ? 'admin' : 'user',
+                            password: '123456'
                         });
                     }
                 }
@@ -95,6 +126,15 @@ export const UserManagement: React.FC = () => {
 
     const deleteUser = (id: string) => {
         saveUsers(users.filter(u => u.id !== id));
+    };
+
+    const resetPassword = (id: string) => {
+        const updatedUsers = users.map(u =>
+            u.id === id ? { ...u, password: '123456' } : u
+        );
+        saveUsers(updatedUsers);
+        const targetUser = users.find(u => u.id === id);
+        setMessage({ type: 'success', text: `${targetUser?.name} 선생님의 비밀번호가 '123456'으로 초기화되었습니다.` });
     };
 
     return (
@@ -134,6 +174,53 @@ export const UserManagement: React.FC = () => {
                 </div>
             </div>
 
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-blue-600" />
+                    개별 사용자 등록
+                </h3>
+                <form onSubmit={handleIndividualSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 ml-1">이메일</label>
+                        <input
+                            type="email"
+                            placeholder="example@sc2.gyo6.net"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            required
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 ml-1">이름</label>
+                        <input
+                            type="text"
+                            placeholder="성함 입력(공백 시 이메일 아이디 사용)"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 ml-1">권한</label>
+                        <select
+                            value={newRole}
+                            onChange={(e) => setNewRole(e.target.value as 'admin' | 'user')}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="user">교직원 (User)</option>
+                            <option value="admin">관리자 (Admin)</option>
+                        </select>
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95"
+                    >
+                        등록하기
+                    </button>
+                </form>
+            </div>
 
             <AnimatePresence>
                 {message && (
@@ -209,12 +296,22 @@ export const UserManagement: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => deleteUser(u.id)}
-                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => resetPassword(u.id)}
+                                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="비밀번호 초기화 (123456)"
+                                                >
+                                                    <RefreshCcw className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteUser(u.id)}
+                                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="사용자 삭제"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

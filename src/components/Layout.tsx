@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { User } from '../types';
+import { ShortcutBar } from './ShortcutBar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,6 +38,8 @@ export const Layout: React.FC<LayoutProps> = ({
           onLogout={onLogout}
           onLoginClick={() => onNavigate('/login')}
         />
+        <ShortcutBar user={user} />
+
         <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           {children}
         </main>

@@ -4,6 +4,7 @@ import {
   FileText,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
   Clock,
   ExternalLink,
   Sun,
@@ -12,9 +13,9 @@ import {
 } from 'lucide-react';
 
 import { DUMMY_SCHEDULES, DUMMY_TRAININGS } from '../constants';
-import { format } from 'date-fns';
+import { format, addDays, subDays, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface DashboardProps {
   isAuthenticated: boolean;
@@ -23,8 +24,18 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin }) => {
   const today = new Date();
+  const [scheduleDate, setScheduleDate] = React.useState(today);
+
   const formattedDate = format(today, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko });
   const time = format(today, 'HH:mm');
+
+  const selectedDaySchedules = DUMMY_SCHEDULES.filter(s =>
+    isSameDay(new Date(s.date), scheduleDate)
+  );
+
+  const goToPreviousDay = () => setScheduleDate(prev => subDays(prev, 1));
+  const goToNextDay = () => setScheduleDate(prev => addDays(prev, 1));
+  const goToToday = () => setScheduleDate(today);
 
   return (
     <div className="grid grid-cols-12 gap-6 h-full min-h-[calc(100vh-160px)]">
@@ -66,52 +77,94 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin }
           </motion.div>
         </div>
 
-        {/* Bottom Row: Main Schedule */}
+        {/* Bottom Row: Main Schedule (Daily View) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="flex-1 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col"
         >
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+          <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
+            <div className="flex items-center gap-4">
               <div className="w-2 h-8 bg-blue-600 rounded-full" />
-              주요 학교 일정
-            </h2>
-            <div className="flex gap-2">
-              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-bold text-slate-600 transition-colors">주간</button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm">월간</button>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 leading-none">주요 학교 일정</h2>
+                <p className="text-slate-400 text-sm mt-1 font-medium italic">
+                  {format(scheduleDate, 'yyyy. MM. dd (EEEE)', { locale: ko })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+              <button
+                onClick={goToPreviousDay}
+                className="p-2 hover:bg-white hover:text-blue-600 rounded-lg transition-all hover:shadow-sm"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              </button>
+              <button
+                onClick={goToToday}
+                className="px-3 py-1 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors border-x border-slate-200"
+              >
+                오늘
+              </button>
+              <button
+                onClick={goToNextDay}
+                className="p-2 hover:bg-white hover:text-blue-600 rounded-lg transition-all hover:shadow-sm"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              </button>
             </div>
           </div>
 
-          <div className="space-y-4 flex-1 overflow-y-auto pr-2">
-            {DUMMY_SCHEDULES.map((schedule) => (
-              <div key={schedule.id} className="flex items-center gap-6 p-4 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100 group">
-                <div className="w-16 text-center">
-                  <p className="text-xs font-bold text-slate-400 uppercase">{format(new Date(schedule.date), 'EEE', { locale: ko })}</p>
-                  <p className="text-xl font-black text-slate-900">{format(new Date(schedule.date), 'dd')}</p>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${schedule.category === '공문' ? 'bg-orange-100 text-orange-600' :
-                      schedule.category === '행사' ? 'bg-blue-100 text-blue-600' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
-                      {schedule.category}
-                    </span>
-                    {schedule.important && <span className="text-[10px] font-bold text-red-500">● 중요</span>}
+          <div className="flex-1 min-h-[200px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={scheduleDate.toISOString()}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                {selectedDaySchedules.length === 0 ? (
+                  <div className="h-full py-12 flex flex-col items-center justify-center text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                    <CalendarIcon className="w-12 h-12 mb-3 opacity-20" />
+                    <p className="font-medium">등록된 일정이 없습니다.</p>
                   </div>
-                  <h3 className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{schedule.title}</h3>
-                </div>
-                {isAuthenticated && (
-                  <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white rounded-lg transition-all">
-                    <ChevronRight className="w-5 h-5 text-slate-400" />
-                  </button>
+                ) : (
+                  selectedDaySchedules.map((schedule) => (
+                    <div key={schedule.id} className="flex items-center gap-6 p-6 bg-slate-50/80 hover:bg-white rounded-2xl transition-all border border-slate-100 hover:border-blue-200 hover:shadow-md group">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider ${schedule.category === '공문' ? 'bg-orange-100 text-orange-600' :
+                            schedule.category === '행사' ? 'bg-blue-100 text-blue-600' :
+                              'bg-slate-200 text-slate-600'
+                            }`}>
+                            {schedule.category}
+                          </span>
+                          {schedule.important && (
+                            <span className="flex items-center gap-1 text-[10px] font-black text-red-500 animate-pulse">
+                              <AlertCircle className="w-3 h-3" />
+                              중요
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 group-hover:text-blue-600 transition-colors uppercase">
+                          {schedule.title}
+                        </h3>
+                        {schedule.description && (
+                          <p className="text-slate-500 mt-2 text-sm leading-relaxed">{schedule.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))
                 )}
-              </div>
-            ))}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
+
       </div>
 
       {/* Right Area (Col 9-12) */}
@@ -157,24 +210,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin }
             </button>
           ))}
 
-          {/* Quick Action Cards */}
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div
-              className={`p-4 bg-blue-600/20 border border-blue-500/30 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${isAuthenticated ? 'cursor-pointer hover:bg-blue-600/30' : 'opacity-40 cursor-not-allowed'
-                }`}
-            >
-              <FileText className="w-6 h-6 text-blue-400" />
-              <span className="text-xs font-bold">나이스 바로가기</span>
-            </div>
-            <div
-              className={`p-4 bg-emerald-600/20 border border-emerald-500/30 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${isAuthenticated ? 'cursor-pointer hover:bg-emerald-600/30' : 'opacity-40 cursor-not-allowed'
-                }`}
-            >
-              <BookOpen className="w-6 h-6 text-emerald-400" />
-              <span className="text-xs font-bold">에듀파인</span>
-            </div>
-          </div>
         </div>
+
 
         <div className="mt-8 pt-6 border-t border-white/10">
           <div className="flex items-center gap-3 text-slate-400">

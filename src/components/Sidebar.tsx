@@ -22,7 +22,6 @@ const MENU_ITEMS = [
   { icon: LayoutDashboard, label: '대시보드', path: '/' },
   { icon: Calendar, label: '일정 관리', path: '/calendar' },
   { icon: BookOpen, label: '연수 게시판', path: '/training' },
-  { icon: FileText, label: '공문함', path: '/documents' },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -105,11 +104,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         <div className="absolute bottom-0 left-0 w-full p-4 border-t border-slate-800">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 hover:text-white transition-colors">
+          <button
+            onClick={() => {
+              onNavigate('/settings');
+              onClose();
+            }}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+              currentPath === '/settings'
+                ? "bg-blue-600 text-white"
+                : "hover:bg-slate-800 hover:text-white"
+            )}
+          >
             <Settings className="w-5 h-5" />
             <span className="font-medium">내 설정</span>
           </button>
         </div>
+
       </aside>
     </>
   );

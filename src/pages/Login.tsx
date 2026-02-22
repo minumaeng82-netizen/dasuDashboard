@@ -31,7 +31,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             const users = JSON.parse(savedUsers);
             const regUser = users.find((u: any) => u.email === email);
 
-            if (regUser) {
+            if (regUser && regUser.password === password) {
                 setTimeout(() => {
                     onLogin(email, regUser.role);
                     setIsLoading(false);
@@ -39,6 +39,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 return;
             }
         }
+
 
         setTimeout(() => {
             setError('아이디 또는 비밀번호가 올바르지 않습니다.');

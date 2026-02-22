@@ -27,8 +27,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
           온 마음으로 <span className="text-blue-600">정시퇴근</span>을 꿈꾸는 행복 <span className="text-blue-600">김천다수</span> 교무통신
         </h1>
-
-
       </div>
 
       <div className="flex items-center gap-6">

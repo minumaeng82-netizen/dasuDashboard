@@ -7,7 +7,9 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  password?: string;
 }
+
 
 export interface Schedule {
   id: string;
@@ -16,6 +18,14 @@ export interface Schedule {
   category: Category;
   description?: string;
   important: boolean;
+  authorEmail?: string;
+}
+
+
+export interface Shortcut {
+  id: string;
+  label: string;
+  url: string;
 }
 
 export interface TrainingPost {
@@ -25,5 +35,8 @@ export interface TrainingPost {
   date: string;
   pdfUrl?: string;
   summary: string;
+  authorEmail?: string;
 }
+
+
 
