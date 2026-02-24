@@ -20,8 +20,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         setError('');
         setIsLoading(true);
 
-        // Hardcoded admin check as requested
-        if (email === 'namdol01@sc2.gyo6.net' && password === 'maengmw82@') {
+        // Admin check via environment variables
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+
+        if (email === adminEmail && password === adminPassword) {
             setTimeout(() => {
                 onLogin({
                     id: email,

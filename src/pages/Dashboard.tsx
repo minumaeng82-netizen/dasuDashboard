@@ -8,6 +8,9 @@ import {
   Clock,
   ExternalLink,
   Sun,
+  Cloud,
+  CloudRain,
+  CloudSnow,
   BookOpen,
   User as UserIcon
 } from 'lucide-react';
@@ -31,10 +34,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
   const [schedules, setSchedules] = React.useState<Schedule[]>([]);
   const [trainings, setTrainings] = React.useState<TrainingPost[]>([]);
 
+  const [weather, setWeather] = React.useState<{ temp: number; icon: string; status: string; dust: string } | null>(null);
+
   React.useEffect(() => {
     fetchSchedules();
     fetchTrainings();
+    fetchWeather();
   }, []);
+
+  const fetchWeather = async () => {
+    try {
+      // Gimcheon, South Korea coordinates: 36.12, 128.11
+      const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=36.12&longitude=128.11&current=temperature_2m,weather_code&timezone=Asia%2FSeoul');
+      const data = await response.json();
+
+      const temp = Math.round(data.current.temperature_2m);
+      const code = data.current.weather_code;
+
+      let status = '맑음';
+      let icon = 'Sun';
+
+      if (code >= 1 && code <= 3) { status = '구름 조금'; icon = 'Cloud'; }
+      else if (code >= 45 && code <= 48) { status = '안개'; icon = 'Cloud'; }
+      else if (code >= 51 && code <= 67) { status = '비'; icon = 'CloudRain'; }
+      else if (code >= 71 && code <= 77) { status = '눈'; icon = 'CloudSnow'; }
+      else if (code >= 80 && code <= 99) { status = '소나기/천둥'; icon = 'CloudRain'; }
+
+      setWeather({
+        temp,
+        status,
+        icon,
+        dust: '보통' // Dust typically requires a different API, defaulting to 'Normal'
+      });
+    } catch (err) {
+      console.error('Weather fetch error:', err);
+      // Fallback
+      setWeather({ temp: 2, status: '흐림', icon: 'Cloud', dust: '보통' });
+    }
+  };
 
   const fetchSchedules = () => {
     try {
@@ -128,12 +165,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
             transition={{ delay: 0.1 }}
             className="bg-white rounded-2xl border border-slate-200 p-8 flex flex-col items-center justify-center shadow-sm text-center"
           >
-            <div className="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mb-4">
-              <Sun className="w-10 h-10 text-yellow-500" />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${weather?.icon === 'Sun' ? 'bg-yellow-50 text-yellow-500' :
+                weather?.icon === 'Cloud' ? 'bg-slate-50 text-slate-500' :
+                  weather?.icon === 'CloudRain' ? 'bg-blue-50 text-blue-500' :
+                    'bg-blue-50 text-blue-400'
+              }`}>
+              {weather?.icon === 'Sun' && <Sun className="w-10 h-10" />}
+              {weather?.icon === 'Cloud' && <Cloud className="w-10 h-10" />}
+              {weather?.icon === 'CloudRain' && <CloudRain className="w-10 h-10" />}
+              {weather?.icon === 'CloudSnow' && <CloudSnow className="w-10 h-10" />}
+              {!weather && <Sun className="w-10 h-10" />}
             </div>
             <div className="space-y-1">
-              <p className="text-2xl font-bold text-slate-900">맑음 12°C</p>
-              <p className="text-sm text-slate-500">미세먼지: <span className="text-emerald-500 font-bold">좋음</span></p>
+              <p className="text-2xl font-bold text-slate-900">
+                {weather ? `${weather.status} ${weather.temp}°C` : '로딩 중...'}
+              </p>
+              <p className="text-sm text-slate-500">미세먼지: <span className="text-emerald-500 font-bold">{weather?.dust || '좋음'}</span></p>
               <p className="text-xs text-slate-400 mt-2">김천시 다수동 기준</p>
             </div>
           </motion.div>

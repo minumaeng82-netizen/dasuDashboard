@@ -34,8 +34,10 @@ export const PasswordSettings: React.FC<SettingsProps> = ({ user, onUserUpdate }
 
         const storedUser = users[userIndex];
 
-        // Hardcoded admin check fallback if no password stored
-        const actualStoredPassword = storedUser.password || (user.email === 'namdol01@sc2.gyo6.net' ? 'maengmw82@' : '123456');
+        // Admin check fallback via environment variables
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+        const actualStoredPassword = storedUser.password || (user.email === adminEmail ? adminPassword : '123456');
 
         if (currentPassword !== actualStoredPassword) {
             setMessage({ type: 'error', text: '현재 비밀번호가 일치하지 않습니다.' });
@@ -93,8 +95,8 @@ export const PasswordSettings: React.FC<SettingsProps> = ({ user, onUserUpdate }
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             className={`p-4 rounded-xl flex items-center gap-3 border mb-6 ${message.type === 'success'
-                                    ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                                    : 'bg-red-50 border-red-100 text-red-700'
+                                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                                : 'bg-red-50 border-red-100 text-red-700'
                                 }`}
                         >
                             {message.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
