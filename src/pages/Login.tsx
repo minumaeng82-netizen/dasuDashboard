@@ -15,23 +15,27 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
-
         e.preventDefault();
         setError('');
         setIsLoading(true);
+
+        const inputEmail = email.trim();
+        const inputPassword = password.trim();
 
         // Admin check via environment variables
         const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
         const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
 
-        if (email === adminEmail && password === adminPassword) {
+        if (adminEmail && adminPassword &&
+            inputEmail === adminEmail.trim() &&
+            inputPassword === adminPassword.trim()) {
             setTimeout(() => {
                 onLogin({
-                    id: email,
-                    email,
+                    id: inputEmail,
+                    email: inputEmail,
                     name: '맹민우',
                     role: 'admin',
-                    password: password
+                    password: inputPassword
                 });
                 setIsLoading(false);
             }, 800);
