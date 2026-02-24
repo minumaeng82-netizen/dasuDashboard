@@ -1,6 +1,7 @@
 import React from 'react';
-import { Bell, User as UserIcon, Menu, LogOut } from 'lucide-react';
+import { Bell, User as UserIcon, Menu, LogOut, Sparkles } from 'lucide-react';
 import { User } from '../types';
+import { motion } from 'motion/react';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -24,9 +25,27 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           <Menu className="w-6 h-6 text-slate-600" />
         </button>
-        <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
-          온 마음으로 <span className="text-blue-600">정시퇴근</span>을 꿈꾸는 행복 <span className="text-blue-600">김천다수</span> 교무통신
-        </h1>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-3"
+        >
+          <div className="hidden sm:flex w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl items-center justify-center shadow-lg shadow-blue-200">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-xl md:text-2xl font-black tracking-tight flex flex-wrap items-center gap-x-2">
+            <span className="text-slate-400 font-medium text-sm md:text-base w-full md:w-auto">온 마음으로</span>
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm">
+              정시퇴근
+            </span>
+            <span className="text-slate-800">을 꿈꾸는 행복</span>
+            <span className="relative inline-block">
+              <span className="relative z-10 bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">김천다수</span>
+              <span className="absolute bottom-1 left-0 w-full h-2 bg-blue-100 -z-0 rounded-full opacity-60"></span>
+            </span>
+            <span className="text-slate-900">교무통신</span>
+          </h1>
+        </motion.div>
       </div>
 
       <div className="flex items-center gap-6">

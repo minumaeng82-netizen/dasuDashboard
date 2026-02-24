@@ -236,76 +236,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
     }
   };
 
-  const handleExportExcel = () => {
-    // Current week starting from selectedDate or Monday of that week
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
-    const weekEnd = addDays(weekStart, 6); // Sunday
-    const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-    // Load user names for "담당자" mapping
-    const savedUsers = localStorage.getItem('registered_users');
-    const userMap: Record<string, string> = {};
-    if (savedUsers) {
-      try {
-        const users: User[] = JSON.parse(savedUsers);
-        users.forEach(u => {
-          userMap[u.email] = u.name;
-        });
-      } catch (e) {
-        console.error('Failed to parse registered_users:', e);
-      }
-    }
-
-    const excelData = daysInWeek.map(day => {
-      const dayStr = format(day, 'yyyy-MM-dd');
-      const daySchedules = schedules.filter(s => s.date === dayStr && !s.isPrivate);
-
-      // 계기교육: category === '계기교육'
-      const educationalEvents = daySchedules
-        .filter(s => s.category === '계기교육')
-        .map(s => s.title)
-        .join(', ');
-
-      // 학교 행사 계획: title(timeRange, location, target)
-      const schoolEvents = daySchedules
-        .filter(s => s.category !== '계기교육')
-        .map(s => {
-          const details = [
-            s.timeRange,
-            s.location,
-            s.target
-          ].filter(Boolean).join(', ');
-          return `${s.title}${details ? ` (${details})` : ''}`;
-        })
-        .join('\n');
-
-      // 담당자: names of authors
-      const authors = Array.from(new Set(daySchedules.map(s => {
-        if (!s.authorEmail) return '관리자';
-        return userMap[s.authorEmail] || s.authorEmail.split('@')[0];
-      }))).join(', ');
-
-      return {
-        '날짜': format(day, 'MM/dd (EEEE)', { locale: ko }),
-        '계기교육': educationalEvents,
-        '학교 행사 계획': schoolEvents,
-        '담당자': authors
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, '주간일정');
-
-    worksheet['!cols'] = [
-      { wch: 20 }, // 날짜
-      { wch: 30 }, // 계기교육
-      { wch: 60 }, // 학교 행사 계획
-      { wch: 20 }  // 담당자
-    ];
-
-    XLSX.writeFile(workbook, `주간학교일정_${format(weekStart, 'yyyyMMdd')}.xlsx`);
-  };
 
   const handleOpenPreview = () => {
     const monthStart = startOfMonth(currentMonth);
