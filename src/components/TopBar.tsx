@@ -33,17 +33,11 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="hidden sm:flex w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl items-center justify-center shadow-lg shadow-blue-200">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight flex flex-wrap items-center gap-x-2">
-            <span className="text-slate-400 font-medium text-sm md:text-base w-full md:w-auto">온 마음으로</span>
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent drop-shadow-sm">
-              정시퇴근
-            </span>
-            <span className="text-slate-800">을 꿈꾸는 행복</span>
-            <span className="relative inline-block">
-              <span className="relative z-10 bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">김천다수</span>
-              <span className="absolute bottom-1 left-0 w-full h-2 bg-blue-100 -z-0 rounded-full opacity-60"></span>
-            </span>
-            <span className="text-slate-900">교무통신</span>
+          <h1 className="text-xl md:text-2xl font-black tracking-tight flex items-center">
+            <span className="text-slate-700">온마음으로 </span>
+            <span className="text-slate-700 font-bold mx-1.5">꿈꾸는 행복</span>
+            <span className="text-blue-600 mx-1.5">김천다수초등학교</span>
+            <span className="text-slate-900"> 교무포털</span>
           </h1>
         </motion.div>
       </div>

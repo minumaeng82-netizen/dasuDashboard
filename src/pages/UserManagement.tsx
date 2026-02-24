@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download, RefreshCcw } from 'lucide-react';
+import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download, RefreshCcw, Edit2, X } from 'lucide-react';
 import { User } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -68,8 +68,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
     };
 
 
-    const handleIndividualSubmit = (e: React.FormEvent) => {
+    const handleIndividualSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setMessage(null);
+
         if (!newEmail || !newEmail.includes('@')) {
             setMessage({ type: 'error', text: '유효한 이메일을 입력해주세요.' });
             return;
@@ -81,14 +83,33 @@ export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
         }
 
         const newUser: User = {
-            id: newEmail, // Consistent with App.tsx login logic
+            id: newEmail,
             email: newEmail,
             name: newName || newEmail.split('@')[0],
             role: newRole,
             password: '123456'
         };
 
-        saveUsers([...users, newUser]);
+        const updatedUsers = [...users, newUser];
+        setUsers(updatedUsers);
+        localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
+
+        if (supabase) {
+            try {
+                const { error } = await supabase
+                    .from('registered_users')
+                    .upsert(newUser, { onConflict: 'email' });
+
+                if (error) {
+                    console.error('Supabase Sync Error:', error);
+                    setMessage({ type: 'error', text: 'DB 동기화에 실패했습니다. (로컬에는 저장됨)' });
+                    return;
+                }
+            } catch (err) {
+                console.error('Supabase connection error:', err);
+            }
+        }
+
         setMessage({ type: 'success', text: '사용자가 등록되었습니다.' });
         setNewEmail('');
         setNewName('');
@@ -167,23 +188,70 @@ export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
         reader.readAsText(file);
     };
 
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editRole, setEditRole] = useState<'admin' | 'user'>('user');
+
+    const openEditModal = (u: User) => {
+        setEditingUser(u);
+        setEditName(u.name);
+        setEditRole(u.role);
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+
+        const updatedUser = { ...editingUser, name: editName, role: editRole };
+        const updatedUsers = users.map(u => u.id === editingUser.id ? updatedUser : u);
+
+        setUsers(updatedUsers);
+        localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
+
+        if (supabase) {
+            try {
+                const { error } = await supabase
+                    .from('registered_users')
+                    .upsert(updatedUser);
+
+                if (error) {
+                    console.error('Supabase update error:', error);
+                    setMessage({ type: 'error', text: 'DB 업데이트에 실패했습니다.' });
+                } else {
+                    setMessage({ type: 'success', text: `${editName} 선생님의 정보가 수정되었습니다.` });
+                }
+            } catch (err) {
+                console.error('Connection error:', err);
+            }
+        }
+        setIsEditModalOpen(false);
+    };
+
     const deleteUser = async (id: string) => {
+        if (!window.confirm('해당 사용자를 삭제하시겠습니까?')) return;
         const updatedUsers = users.filter(u => u.id !== id);
         setUsers(updatedUsers);
         localStorage.setItem('registered_users', JSON.stringify(updatedUsers));
 
         if (supabase) {
-            const { error } = await supabase
-                .from('registered_users')
-                .delete()
-                .eq('id', id);
+            try {
+                const { error } = await supabase
+                    .from('registered_users')
+                    .delete()
+                    .eq('id', id);
 
-            if (error) console.error('Failed to delete user from Supabase:', error);
+                if (error) console.error('Failed to delete user from Supabase:', error);
+            } catch (err) {
+                console.error('Delete connection error:', err);
+            }
         }
     };
 
 
     const resetPassword = (id: string) => {
+        if (!window.confirm('비밀번호를 123456으로 초기화하시겠습니까?')) return;
         const updatedUsers = users.map(u =>
             u.id === id ? { ...u, password: '123456' } : u
         );
@@ -353,6 +421,13 @@ export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
+                                                    onClick={() => openEditModal(u)}
+                                                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                    title="정보 수정"
+                                                >
+                                                    <Edit2 className="w-5 h-5" />
+                                                </button>
+                                                <button
                                                     onClick={() => resetPassword(u.id)}
                                                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                     title="비밀번호 초기화 (123456)"
@@ -376,6 +451,73 @@ export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
                 </div>
             </div>
 
+            <AnimatePresence>
+                {isEditModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200"
+                        >
+                            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                                <h3 className="text-xl font-bold text-slate-900">사용자 정보 수정</h3>
+                                <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                                    <X className="w-6 h-6 text-slate-400" />
+                                </button>
+                            </div>
+                            <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-slate-700">이메일 (변경 불가)</label>
+                                    <input
+                                        type="text"
+                                        value={editingUser?.email}
+                                        disabled
+                                        className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-slate-700">이름</label>
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-slate-700">권한</label>
+                                    <select
+                                        value={editRole}
+                                        onChange={(e) => setEditRole(e.target.value as 'admin' | 'user')}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="user">교직원 (User)</option>
+                                        <option value="admin">관리자 (Admin)</option>
+                                    </select>
+                                </div>
+                                <div className="pt-4 flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditModalOpen(false)}
+                                        className="flex-1 px-6 py-3 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95"
+                                    >
+                                        수정 완료
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 flex gap-4">
                 <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center flex-shrink-0 text-blue-600">
                     <FileText className="w-6 h-6" />
@@ -391,3 +533,4 @@ export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
         </div>
     );
 };
+

@@ -44,37 +44,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
 
   const fetchWeather = async () => {
     try {
-      // Gimcheon, South Korea coordinates: 36.12, 128.11
-      const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=36.12&longitude=128.11&current=temperature_2m,weather_code&timezone=Asia%2FSeoul');
-      const data = await response.json();
+      // 김천시 다수동 좌표: 36.1218, 128.1198
+      const lat = 36.1218;
+      const lon = 128.1198;
 
-      const temp = Math.round(data.current.temperature_2m);
-      const code = data.current.weather_code;
+      const [weatherRes, airRes] = await Promise.all([
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FSeoul`),
+        fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10&timezone=Asia%2FSeoul`)
+      ]);
+
+      const weatherData = await weatherRes.json();
+      const airData = await airRes.json();
+
+      const temp = Math.round(weatherData.current.temperature_2m);
+      const code = weatherData.current.weather_code;
+      const pm10 = airData.current.pm10;
 
       let status = '맑음';
       let icon = 'Sun';
 
-      if (code >= 1 && code <= 3) { status = '구름 조금'; icon = 'Cloud'; }
+      if (code === 0) { status = '맑음'; icon = 'Sun'; }
+      else if (code >= 1 && code <= 3) { status = '구름 조금'; icon = 'Cloud'; }
       else if (code >= 45 && code <= 48) { status = '안개'; icon = 'Cloud'; }
       else if (code >= 51 && code <= 67) { status = '비'; icon = 'CloudRain'; }
       else if (code >= 71 && code <= 77) { status = '눈'; icon = 'CloudSnow'; }
       else if (code >= 80 && code <= 99) { status = '소나기/천둥'; icon = 'CloudRain'; }
 
+      let dust = '보통';
+      if (pm10 <= 30) dust = '좋음';
+      else if (pm10 <= 80) dust = '보통';
+      else if (pm10 <= 150) dust = '나쁨';
+      else dust = '매우 나쁨';
+
       setWeather({
         temp,
         status,
         icon,
-        dust: '보통' // Dust typically requires a different API, defaulting to 'Normal'
+        dust
       });
     } catch (err) {
       console.error('Weather fetch error:', err);
       // Fallback
-      setWeather({ temp: 2, status: '흐림', icon: 'Cloud', dust: '보통' });
+      setWeather({ temp: -2, status: '맑음', icon: 'Sun', dust: '좋음' });
     }
   };
 
-  const fetchSchedules = () => {
+  const fetchSchedules = async () => {
     try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('school_schedules')
+          .select('*')
+          .order('date', { ascending: true });
+
+        if (!error && data) {
+          setSchedules(data);
+          localStorage.setItem('school_schedules', JSON.stringify(data));
+          return;
+        }
+      }
+
       const saved = localStorage.getItem('school_schedules');
       if (saved && saved !== 'undefined') {
         setSchedules(JSON.parse(saved));
@@ -166,9 +195,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
             className="bg-white rounded-2xl border border-slate-200 p-8 flex flex-col items-center justify-center shadow-sm text-center"
           >
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${weather?.icon === 'Sun' ? 'bg-yellow-50 text-yellow-500' :
-                weather?.icon === 'Cloud' ? 'bg-slate-50 text-slate-500' :
-                  weather?.icon === 'CloudRain' ? 'bg-blue-50 text-blue-500' :
-                    'bg-blue-50 text-blue-400'
+              weather?.icon === 'Cloud' ? 'bg-slate-50 text-slate-500' :
+                weather?.icon === 'CloudRain' ? 'bg-blue-50 text-blue-500' :
+                  'bg-blue-50 text-blue-400'
               }`}>
               {weather?.icon === 'Sun' && <Sun className="w-10 h-10" />}
               {weather?.icon === 'Cloud' && <Cloud className="w-10 h-10" />}
@@ -180,7 +209,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
               <p className="text-2xl font-bold text-slate-900">
                 {weather ? `${weather.status} ${weather.temp}°C` : '로딩 중...'}
               </p>
-              <p className="text-sm text-slate-500">미세먼지: <span className="text-emerald-500 font-bold">{weather?.dust || '좋음'}</span></p>
+              <p className="text-sm text-slate-500">미세먼지: <span className={`${weather?.dust === '좋음' ? 'text-emerald-500' :
+                weather?.dust === '보통' ? 'text-blue-500' :
+                  weather?.dust === '나쁨' ? 'text-orange-500' :
+                    weather?.dust === '매우 나쁨' ? 'text-red-500' :
+                      'text-emerald-500'
+                } font-bold`}>{weather?.dust || '로딩 중...'}</span></p>
               <p className="text-xs text-slate-400 mt-2">김천시 다수동 기준</p>
             </div>
           </motion.div>

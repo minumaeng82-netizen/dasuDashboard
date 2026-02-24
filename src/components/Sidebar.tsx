@@ -54,10 +54,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" onError={(e) => {
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<span class="text-slate-900 font-bold">퇴근</span>';
+                e.currentTarget.parentElement!.innerHTML = '<span class="text-slate-900 font-bold">다수</span>';
               }} />
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">정시퇴근</span>
+            <span className="text-white font-bold text-lg tracking-tight">김천다수초등학교</span>
           </button>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-slate-800 rounded">
             <X className="w-5 h-5" />

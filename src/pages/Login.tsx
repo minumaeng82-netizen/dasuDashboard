@@ -29,7 +29,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 onLogin({
                     id: email,
                     email,
-                    name: '관리자',
+                    name: '맹민우',
                     role: 'admin',
                     password: password
                 });
@@ -38,16 +38,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             return;
         }
 
-        // Check against registered users
+        // 1. Supabase에서 사용자 조회 시도 (최신 정보)
         let regUser = null;
-        const savedUsers = localStorage.getItem('registered_users');
-        if (savedUsers) {
-            const users = JSON.parse(savedUsers);
-            regUser = users.find((u: any) => u.email === email);
-        }
-
-        // If not in localStorage, try Supabase directly
-        if (!regUser && supabase) {
+        if (supabase) {
             try {
                 const { data, error } = await supabase
                     .from('registered_users')
@@ -59,11 +52,36 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     regUser = data;
                 }
             } catch (err) {
-                console.error('Supabase auth check failed:', err);
+                console.error('Supabase auth search error:', err);
             }
         }
 
+        // 2. LocalStorage에서 사용자 조회 시도 (오프라인/캐시 fallback)
+        if (!regUser) {
+            const savedUsers = localStorage.getItem('registered_users');
+            if (savedUsers) {
+                try {
+                    const users = JSON.parse(savedUsers);
+                    regUser = users.find((u: any) => u.email === email);
+                } catch (e) {
+                    console.error('Failed to parse local users:', e);
+                }
+            }
+        }
+
+        // 3. 비밀번호 확인 및 로그인 처리
         if (regUser && regUser.password === password) {
+            // 정보 업데이트 (캐시)
+            const savedUsers = localStorage.getItem('registered_users');
+            let currentLocalUsers = savedUsers ? JSON.parse(savedUsers) : [];
+            const index = currentLocalUsers.findIndex((u: any) => u.email === email);
+            if (index > -1) {
+                currentLocalUsers[index] = regUser;
+            } else {
+                currentLocalUsers.push(regUser);
+            }
+            localStorage.setItem('registered_users', JSON.stringify(currentLocalUsers));
+
             setTimeout(() => {
                 onLogin(regUser);
                 setIsLoading(false);

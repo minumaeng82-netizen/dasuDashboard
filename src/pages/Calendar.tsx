@@ -66,6 +66,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
   // Daily View Modal State
   const [isDailyViewOpen, setIsDailyViewOpen] = useState(false);
   const [viewDate, setViewDate] = useState<Date | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
 
   // Preview Modal State
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -157,19 +158,29 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
     setIsModalOpen(true);
   };
 
-  const handleAddSchedule = (e: React.FormEvent) => {
+  const handleAddSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle || !regDate) return;
 
+    let updatedSchedules = [...schedules];
+    let targetEntry: Schedule;
+
     if (editingId) {
-      const updated = schedules.map(s =>
-        s.id === editingId
-          ? { ...s, title: newTitle, category: newCategory, description: newDescription, date: regDate, timeRange: newTimeRange, location: newLocation, target: newTarget, isPrivate: newIsPrivate }
-          : s
-      );
-      saveSchedules(updated);
+      targetEntry = {
+        id: editingId,
+        title: newTitle,
+        category: newCategory,
+        description: newDescription,
+        date: regDate,
+        timeRange: newTimeRange,
+        location: newLocation,
+        target: newTarget,
+        isPrivate: newIsPrivate,
+        authorEmail: user?.email
+      };
+      updatedSchedules = schedules.map(s => s.id === editingId ? targetEntry : s);
     } else {
-      const newEntry: Schedule = {
+      targetEntry = {
         id: Math.random().toString(36).substr(2, 9),
         title: newTitle,
         date: regDate,
@@ -181,7 +192,27 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
         authorEmail: user?.email,
         isPrivate: newIsPrivate
       };
-      saveSchedules([...schedules, newEntry]);
+      updatedSchedules = [...schedules, targetEntry];
+    }
+
+    // Update local state and storage
+    setSchedules(updatedSchedules);
+    localStorage.setItem('school_schedules', JSON.stringify(updatedSchedules));
+
+    // Sync with Supabase (Single item upsert)
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('school_schedules')
+          .upsert(targetEntry);
+
+        if (error) {
+          console.error('Supabase Sync Error:', error);
+          alert('일정 저장 중 오류가 발생했습니다. (오프라인 모드 유지)');
+        }
+      } catch (err) {
+        console.error('Supabase connection error:', err);
+      }
     }
 
     // Reset Form
@@ -211,9 +242,10 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
     setIsModalOpen(true);
   };
 
-  const openDailyView = (e: React.MouseEvent, date: Date) => {
+  const openDailyView = (e: React.MouseEvent, date: Date, scheduleId?: string) => {
     e.stopPropagation();
     setViewDate(date);
+    setSelectedScheduleId(scheduleId || null);
     setIsDailyViewOpen(true);
   };
 
@@ -238,21 +270,39 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
 
 
-  const handleOpenPreview = () => {
+  const handleOpenPreview = async () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-    const savedUsers = localStorage.getItem('registered_users');
+    // Fetch latest users to get real names
     const userMap: Record<string, string> = {};
-    if (savedUsers) {
+    if (supabase) {
       try {
-        const users: User[] = JSON.parse(savedUsers);
-        users.forEach(u => {
-          userMap[u.email] = u.name;
-        });
-      } catch (e) {
-        console.error('Failed to parse registered_users:', e);
+        const { data: dbUsers } = await supabase.from('registered_users').select('email, name');
+        if (dbUsers) {
+          dbUsers.forEach(u => {
+            userMap[u.email] = u.name;
+          });
+          localStorage.setItem('registered_users', JSON.stringify(dbUsers));
+        }
+      } catch (err) {
+        console.error('Failed to fetch users for preview:', err);
+      }
+    }
+
+    // Fallback to localStorage if Supabase failed or returned nothing
+    if (Object.keys(userMap).length === 0) {
+      const savedUsers = localStorage.getItem('registered_users');
+      if (savedUsers) {
+        try {
+          const users: User[] = JSON.parse(savedUsers);
+          users.forEach(u => {
+            userMap[u.email] = u.name;
+          });
+        } catch (e) {
+          console.error('Failed to parse registered_users:', e);
+        }
       }
     }
 
@@ -282,7 +332,8 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
       // 담당자
       const authors = Array.from(new Set(daySchedules.map(s => {
-        if (!s.authorEmail) return '관리자';
+        // 관리자 계정(이메일 없음 또는 특정 관리자 이메일)인 경우 '맹민우'로 표시
+        if (!s.authorEmail || s.authorEmail.includes('admin')) return '맹민우';
         return userMap[s.authorEmail] || s.authorEmail.split('@')[0];
       }))).join(', ');
 
@@ -578,7 +629,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                         title={schedule.title}
                         onClick={(e) => {
                           e.stopPropagation();
-                          openDailyView(e, day);
+                          openDailyView(e, day, schedule.id);
                         }}
                       >
                         {schedule.isPrivate && <Lock className="inline w-2.5 h-2.5 mr-1" />}
@@ -771,7 +822,10 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
       {/* Daily View Modal */}
       <AnimatePresence>
         {isDailyViewOpen && viewDate && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsDailyViewOpen(false)}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" onClick={() => {
+            setIsDailyViewOpen(false);
+            setSelectedScheduleId(null);
+          }}>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -781,13 +835,18 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
             >
               <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 leading-tight">상세 일정</h3>
+                  <h3 className="text-2xl font-black text-slate-900 leading-tight">
+                    {selectedScheduleId ? '상세 일정' : '오늘의 일정'}
+                  </h3>
                   <p className="text-slate-500 font-medium mt-1">
                     {format(viewDate, 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })}
                   </p>
                 </div>
                 <button
-                  onClick={() => setIsDailyViewOpen(false)}
+                  onClick={() => {
+                    setIsDailyViewOpen(false);
+                    setSelectedScheduleId(null);
+                  }}
                   className="w-12 h-12 flex items-center justify-center bg-white hover:bg-slate-100 border border-slate-200 rounded-2xl shadow-sm transition-all"
                 >
                   <X className="w-6 h-6 text-slate-500" />
@@ -798,18 +857,20 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                 {schedules.filter(s => {
                   const sameDay = isSameDay(new Date(s.date), viewDate);
                   if (!sameDay) return false;
+                  if (selectedScheduleId && s.id !== selectedScheduleId) return false;
                   if (viewMode === 'mine') return s.authorEmail === user?.email;
                   return !s.isPrivate; // All view shows only public
                 }).length === 0 ? (
                   <div className="py-20 flex flex-col items-center justify-center text-slate-400 text-center">
                     <AlertCircle className="w-12 h-12 mb-4 opacity-20" />
-                    <p className="font-bold text-lg text-slate-300">이날은 표시할 일정이 없습니다.</p>
+                    <p className="font-bold text-lg text-slate-300">표시할 일정이 없습니다.</p>
                   </div>
                 ) : (
                   schedules
                     .filter(s => {
                       const sameDay = isSameDay(new Date(s.date), viewDate);
                       if (!sameDay) return false;
+                      if (selectedScheduleId && s.id !== selectedScheduleId) return false;
                       if (viewMode === 'mine') return s.authorEmail === user?.email;
                       return !s.isPrivate; // All view shows only public
                     })
@@ -901,7 +962,10 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
               <div className="p-8 bg-slate-50 border-t border-slate-100">
                 <button
-                  onClick={() => setIsDailyViewOpen(false)}
+                  onClick={() => {
+                    setIsDailyViewOpen(false);
+                    setSelectedScheduleId(null);
+                  }}
                   className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-lg transition-all active:scale-[0.98]"
                 >
                   확인
