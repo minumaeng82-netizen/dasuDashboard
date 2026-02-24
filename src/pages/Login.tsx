@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+import { User } from '../types';
+
 interface LoginProps {
-    onLogin: (email: string, role: 'admin' | 'user') => void;
+    onLogin: (user: User) => void;
 }
 
 export const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -21,7 +23,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Hardcoded admin check as requested
         if (email === 'namdol01@sc2.gyo6.net' && password === 'maengmw82@') {
             setTimeout(() => {
-                onLogin(email, 'admin');
+                onLogin({
+                    id: email,
+                    email,
+                    name: '관리자',
+                    role: 'admin',
+                    password: password
+                });
                 setIsLoading(false);
             }, 800);
             return;
@@ -54,7 +62,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         if (regUser && regUser.password === password) {
             setTimeout(() => {
-                onLogin(email, regUser.role);
+                onLogin(regUser);
                 setIsLoading(false);
             }, 800);
             return;

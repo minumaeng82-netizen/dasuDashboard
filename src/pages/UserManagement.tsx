@@ -4,7 +4,11 @@ import { User } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 
-export const UserManagement: React.FC = () => {
+interface UserManagementProps {
+    user: User | null;
+}
+
+export const UserManagement: React.FC<UserManagementProps> = ({ user }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);

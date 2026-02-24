@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { User } from '../types';
 import { ShortcutBar } from './ShortcutBar';
+import { cn } from '../lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,7 +41,10 @@ export const Layout: React.FC<LayoutProps> = ({
         />
         <ShortcutBar user={user} />
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <main className={cn(
+          "flex-1 p-4 md:p-6 lg:p-8 mx-auto w-full",
+          currentPath === '/calendar' ? "max-w-none" : "max-w-7xl"
+        )}>
           {children}
         </main>
       </div>

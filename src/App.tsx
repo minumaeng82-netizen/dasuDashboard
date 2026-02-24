@@ -25,25 +25,9 @@ export default function App() {
   }, []);
 
 
-  const handleLogin = (email: string, role: 'admin' | 'user') => {
-    // Check if we have additional user info in registered_users
-    const saved = localStorage.getItem('registered_users');
-    let existingPassword = '123456';
-    if (saved) {
-      const users: User[] = JSON.parse(saved);
-      const matched = users.find(u => u.email === email);
-      if (matched?.password) existingPassword = matched.password;
-    }
-
-    const newUser: User = {
-      id: email,
-      email,
-      name: email.split('@')[0],
-      role,
-      password: existingPassword
-    };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
+  const handleLogin = (loggedInUser: User) => {
+    setUser(loggedInUser);
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
     setCurrentPath('/');
   };
 
@@ -68,7 +52,7 @@ export default function App() {
       case '/calendar':
         return <Calendar user={user} />;
       case '/users':
-        return user?.role === 'admin' ? <UserManagement /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
+        return user?.role === 'admin' ? <UserManagement user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
       case '/settings':
         return <PasswordSettings user={user} onUserUpdate={(updated) => {
           setUser(updated);

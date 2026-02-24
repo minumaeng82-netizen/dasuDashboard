@@ -1,4 +1,4 @@
-export type Category = '공문' | '복무' | '행사' | '연수' | '기타';
+export type Category = '공문' | '복무' | '행사' | '연수' | '회의' | '기타' | '계기교육';
 
 export type UserRole = 'admin' | 'user';
 
@@ -15,9 +15,11 @@ export interface Schedule {
   id: string;
   title: string;
   date: string;
+  timeRange?: string;
+  location?: string;
+  target?: string;
   category: Category;
   description?: string;
-  important: boolean;
   authorEmail?: string;
   isPrivate?: boolean;
 }
