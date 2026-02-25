@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ExternalLink, Plus, X, Settings2, Save } from 'lucide-react';
 import { Shortcut, User } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface ShortcutBarProps {
     user: User | null;
@@ -8,9 +9,9 @@ interface ShortcutBarProps {
 
 const DEFAULT_SHORTCUTS: Shortcut[] = [
     { id: '1', label: '나이스', url: 'https://www.neis.go.kr' },
-    { id: '2', label: '에듀파인', url: 'https://klef.go.kr_dummy' },
-    { id: '3', label: '학교홈페이지', url: 'http://dasu.es.kr_dummy' },
-    { id: '4', label: 'K-에듀파인', url: 'https://fin.go.kr_dummy' },
+    { id: '2', label: '에듀파인', url: 'https://klef.go.kr' },
+    { id: '3', label: '학교홈페이지', url: 'http://dasu.es.kr' },
+    { id: '4', label: 'K-에듀파인', url: 'https://fin.go.kr' },
 ];
 
 export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
@@ -20,56 +21,96 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
     const [newUrl, setNewUrl] = useState('');
 
     useEffect(() => {
-        // Load shortcuts based on user role
-        const loadShortcuts = () => {
-            const globalStored = localStorage.getItem('global_shortcuts');
-            const global = globalStored ? JSON.parse(globalStored) : DEFAULT_SHORTCUTS;
-
-            if (!user) {
-                setShortcuts(global);
-                return;
-            }
-
-            if (user.role === 'admin') {
-                setShortcuts(global);
-            } else {
-                const personalStored = localStorage.getItem(`personal_shortcuts_${user.id}`);
-                const personal = personalStored ? JSON.parse(personalStored) : global;
-                setShortcuts(personal);
-            }
-        };
-
-        loadShortcuts();
+        fetchShortcuts();
     }, [user]);
 
-    const saveShortcuts = (updated: Shortcut[]) => {
-        setShortcuts(updated);
-        if (user?.role === 'admin') {
-            localStorage.setItem('global_shortcuts', JSON.stringify(updated));
-            // Optional: You could merge or notify users here, but simple overide is common.
-        } else if (user) {
-            localStorage.setItem(`personal_shortcuts_${user.id}`, JSON.stringify(updated));
+    const fetchShortcuts = async () => {
+        try {
+            if (supabase) {
+                // 관리자만 관리하므로 항상 공통(global) 링크만 조회
+                const { data, error } = await supabase
+                    .from('app_shortcuts')
+                    .select('*')
+                    .eq('type', 'global')
+                    .order('created_at', { ascending: true });
+
+                if (!error && data && data.length > 0) {
+                    setShortcuts(data as Shortcut[]);
+                    localStorage.setItem('cached_shortcuts', JSON.stringify(data));
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch shortcuts from Supabase:', err);
+        }
+
+        // Fallback to localStorage or Defaults
+        const cached = localStorage.getItem('cached_shortcuts');
+        if (cached) {
+            setShortcuts(JSON.parse(cached));
+        } else {
+            setShortcuts(DEFAULT_SHORTCUTS);
         }
     };
 
-    const addShortcut = (e: React.FormEvent) => {
+    const handleSync = async () => {
+        if (!supabase || user?.role !== 'admin') {
+            setIsEditing(false);
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('app_shortcuts')
+                .upsert(shortcuts.map(s => ({
+                    id: s.id,
+                    label: s.label,
+                    url: s.url,
+                    type: 'global',
+                    userEmail: user.email
+                })));
+
+            if (error) throw error;
+            setIsEditing(false);
+        } catch (err) {
+            console.error('Failed to sync shortcuts:', err);
+            alert('저장 중 오류가 발생했습니다.');
+        }
+    };
+
+    const addShortcut = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newLabel || !newUrl) return;
+        if (!newLabel || !newUrl || user?.role !== 'admin') return;
 
         const url = newUrl.startsWith('http') ? newUrl : `https://${newUrl}`;
-        const newItem: Shortcut = {
+        const newItem: any = {
             id: Math.random().toString(36).substr(2, 9),
             label: newLabel,
-            url
+            url,
+            type: 'global',
+            userEmail: user?.email
         };
 
-        saveShortcuts([...shortcuts, newItem]);
+        const updated = [...shortcuts, newItem];
+        setShortcuts(updated);
+
+        if (supabase) {
+            await supabase.from('app_shortcuts').insert([newItem]);
+        }
+
         setNewLabel('');
         setNewUrl('');
     };
 
-    const removeShortcut = (id: string) => {
-        saveShortcuts(shortcuts.filter(s => s.id !== id));
+    const removeShortcut = async (id: string) => {
+        if (user?.role !== 'admin') return;
+
+        const updated = shortcuts.filter(s => s.id !== id);
+        setShortcuts(updated);
+
+        if (supabase) {
+            await supabase.from('app_shortcuts').delete().eq('id', id);
+        }
     };
 
     return (
@@ -78,29 +119,33 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
                 <div className="flex items-center gap-2">
                     {shortcuts.map((s) => (
                         <div key={s.id} className="relative group flex items-center gap-1">
-                            {isEditing ? (
+                            {isEditing && user?.role === 'admin' ? (
                                 <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700">
                                     <input
                                         type="text"
                                         value={s.label}
+                                        size={Math.max(s.label.length, 2)}
                                         onChange={(e) => {
                                             const updated = shortcuts.map(item =>
                                                 item.id === s.id ? { ...item, label: e.target.value } : item
                                             );
-                                            saveShortcuts(updated);
+                                            setShortcuts(updated);
+                                            localStorage.setItem('cached_shortcuts', JSON.stringify(updated));
                                         }}
-                                        className="w-16 px-1.5 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none"
+                                        className="min-w-[40px] px-1.5 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none"
                                     />
                                     <input
                                         type="text"
                                         value={s.url}
+                                        size={Math.max(s.url.length, 5)}
                                         onChange={(e) => {
                                             const updated = shortcuts.map(item =>
                                                 item.id === s.id ? { ...item, url: e.target.value } : item
                                             );
-                                            saveShortcuts(updated);
+                                            setShortcuts(updated);
+                                            localStorage.setItem('cached_shortcuts', JSON.stringify(updated));
                                         }}
-                                        className="w-24 px-1.5 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none"
+                                        className="min-w-[60px] px-1.5 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none"
                                     />
                                     <button
                                         onClick={() => removeShortcut(s.id)}
@@ -125,7 +170,7 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
                 </div>
 
 
-                {user && (
+                {user?.role === 'admin' && (
                     <div className="flex items-center gap-2">
                         {isEditing ? (
                             <form onSubmit={addShortcut} className="flex items-center gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700 animate-in fade-in slide-in-from-left-2 transition-all">
@@ -133,16 +178,18 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
                                     type="text"
                                     placeholder="이름"
                                     value={newLabel}
+                                    size={Math.max(newLabel.length, 4)}
                                     onChange={(e) => setNewLabel(e.target.value)}
-                                    className="w-16 px-2 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="min-w-[40px] px-2 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     required
                                 />
                                 <input
                                     type="text"
                                     placeholder="URL"
                                     value={newUrl}
+                                    size={Math.max(newUrl.length, 6)}
                                     onChange={(e) => setNewUrl(e.target.value)}
-                                    className="w-24 px-2 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    className="min-w-[60px] px-2 py-1 text-[10px] bg-slate-900 text-white border border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     required
                                 />
                                 <button type="submit" className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -150,8 +197,8 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setIsEditing(false)}
-                                    className="p-1 bg-slate-700 text-slate-300 rounded hover:bg-slate-600"
+                                    onClick={handleSync}
+                                    className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                                 >
                                     <Save className="w-3 h-3" />
                                 </button>

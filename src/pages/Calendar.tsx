@@ -612,7 +612,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                   </div>
 
                   <div className="flex-1 overflow-hidden space-y-1 mt-1">
-                    {displaySchedules.slice(0, 2).map(schedule => (
+                    {displaySchedules.slice(0, 4).map(schedule => (
                       <div
                         key={schedule.id}
                         className={cn(
@@ -638,9 +638,9 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                         {schedule.title}
                       </div>
                     ))}
-                    {displaySchedules.length > 2 && (
+                    {displaySchedules.length > 4 && (
                       <div className="text-[9px] font-bold text-slate-400 pl-1 mt-0.5">
-                        +{displaySchedules.length - 2}개 더 있음...
+                        +{displaySchedules.length - 4}개 더 있음...
                       </div>
                     )}
                   </div>
