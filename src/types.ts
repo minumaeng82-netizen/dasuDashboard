@@ -1,4 +1,4 @@
-export type Category = '공문' | '복무' | '행사' | '연수' | '회의' | '기타' | '계기교육';
+export type Category = '공문' | '복무' | '행사' | '연수' | '회의' | '기타';
 
 export type UserRole = 'admin' | 'user';
 

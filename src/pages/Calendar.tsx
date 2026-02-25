@@ -313,13 +313,11 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
       // 계기교육
       const educationalEvents = [
-        holiday?.name,
-        ...daySchedules.filter(s => s.category === '계기교육').map(s => s.title)
+        holiday?.name
       ].filter(Boolean).join('\n');
 
       // 학교 행사 계획
       const schoolEvents = daySchedules
-        .filter(s => s.category !== '계기교육')
         .map(s => {
           const details = [
             s.timeRange,
@@ -623,8 +621,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                             schedule.category === '행사' ? "bg-blue-50 text-blue-600 border-blue-100" :
                               schedule.category === '연수' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                                 schedule.category === '회의' ? "bg-purple-50 text-purple-600 border-purple-100" :
-                                  schedule.category === '계기교육' ? "bg-amber-50 text-amber-600 border-amber-100" :
-                                    "bg-slate-50 text-slate-600 border-slate-200"
+                                  "bg-slate-50 text-slate-600 border-slate-200"
                         )}
                         title={schedule.title}
                         onClick={(e) => {
@@ -706,7 +703,6 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                       <option value="행사">행사</option>
                       <option value="연수">연수</option>
                       <option value="회의">회의</option>
-                      <option value="계기교육">계기교육</option>
                       <option value="기타">기타</option>
                     </select>
                   </div>
