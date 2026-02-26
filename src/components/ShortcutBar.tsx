@@ -67,14 +67,18 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
                     label: s.label,
                     url: s.url,
                     type: 'global',
-                    userEmail: user.email
+                    user_email: user.email
                 })));
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase Upsert Error:', error);
+                throw error;
+            }
             setIsEditing(false);
-        } catch (err) {
+            alert('모든 바로가기가 저장되었습니다.');
+        } catch (err: any) {
             console.error('Failed to sync shortcuts:', err);
-            alert('저장 중 오류가 발생했습니다.');
+            alert(`저장 실패: ${err.message || '알 수 없는 오류'}`);
         }
     };
 
@@ -88,16 +92,21 @@ export const ShortcutBar: React.FC<ShortcutBarProps> = ({ user }) => {
             label: newLabel,
             url,
             type: 'global',
-            userEmail: user?.email
+            user_email: user?.email
         };
 
         const updated = [...shortcuts, newItem];
-        setShortcuts(updated);
 
         if (supabase) {
-            await supabase.from('app_shortcuts').insert([newItem]);
+            const { error } = await supabase.from('app_shortcuts').insert([newItem]);
+            if (error) {
+                console.error('Insert error:', error);
+                alert(`등록 실패: ${error.message}`);
+                return;
+            }
         }
 
+        setShortcuts(updated);
         setNewLabel('');
         setNewUrl('');
     };

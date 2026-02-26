@@ -252,11 +252,11 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/50 border-b border-slate-200">
-              <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider w-16 text-center">번호</th>
-              <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">부서</th>
-              <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider">자료 제목</th>
-              <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider w-32">등록일</th>
-              <th className="px-6 py-4 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">관리</th>
+              <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider w-16 text-center">번호</th>
+              <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">부서</th>
+              <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider">자료 제목</th>
+              <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider w-32">등록일</th>
+              <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-wider w-32 text-center">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -266,15 +266,15 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
                 className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
                 onClick={() => isAuthenticated && setSelectedPost(post)}
               >
-                <td className="px-6 py-4 text-center text-sm text-slate-400 font-medium">
+                <td className="px-4 py-3 text-center text-sm text-slate-400 font-medium">
                   {posts.length - index}
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3">
                   <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
                     {post.author}
                   </span>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-3">
                   <div className="flex flex-col">
                     <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                       {post.title}
@@ -286,10 +286,10 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-500 font-medium">
+                <td className="px-4 py-3 text-sm text-slate-500 font-medium">
                   {post.date}
                 </td>
-                <td className="px-6 py-4 text-center">
+                <td className="px-4 py-3 text-center">
                   <div className="flex items-center justify-center gap-1">
                     <button
                       disabled={!isAuthenticated}
