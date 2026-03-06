@@ -66,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 e.currentTarget.parentElement!.innerHTML = '<span class="text-slate-900 font-bold">다수</span>';
               }} />
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">김천다수초등학교</span>
+            <span className="text-white font-bold text-lg tracking-tight">김천다수 교무포털</span>
           </button>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-slate-800 rounded">
             <X className="w-5 h-5" />

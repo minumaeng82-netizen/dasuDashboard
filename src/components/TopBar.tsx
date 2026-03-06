@@ -41,14 +41,20 @@ export const TopBar: React.FC<TopBarProps> = ({
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2 sm:gap-3"
         >
-          <div className="hidden sm:flex w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl items-center justify-center shadow-lg shadow-blue-200">
-            <Sparkles className="w-6 h-6 text-white" />
+          <div className="flex w-10 h-10 items-center justify-center overflow-hidden">
+            <img
+              src="/icon.png"
+              alt="Icon"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="w-6 h-6 bg-blue-600 rounded-md" />';
+              }}
+            />
           </div>
-          <h1 className="text-base sm:text-xl md:text-2xl font-black tracking-tight flex flex-wrap items-center">
-            <span className="text-slate-700 hidden xs:inline">온마음으로 </span>
-            <span className="text-slate-700 font-bold mx-1 xs:mx-1.5 whitespace-nowrap">꿈꾸는 행복</span>
-            <span className="text-blue-600 mx-1 xs:mx-1.5 whitespace-nowrap">김천다수초</span>
-            <span className="text-slate-900 hidden sm:inline"> 교무포털</span>
+          <h1 className="text-xl md:text-2xl font-black tracking-tight flex items-center">
+            <span className="text-blue-600 mr-2">김천다수</span>
+            <span className="text-slate-900">교무포털</span>
           </h1>
         </motion.div>
       </div>
