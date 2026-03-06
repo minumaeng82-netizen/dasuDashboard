@@ -39,7 +39,7 @@ export const Layout: React.FC<LayoutProps> = ({
           onLogout={onLogout}
           onLoginClick={() => onNavigate('/login')}
         />
-        <ShortcutBar user={user} />
+        <ShortcutBar user={user} currentPath={currentPath} />
 
         <main className={cn(
           "flex-1 p-4 md:p-6 lg:p-8 mx-auto w-full",

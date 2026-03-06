@@ -41,11 +41,25 @@ export const supabase = (!isPlaceholder && supabaseUrl && supabaseAnonKey)
  *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
  * );
  * 
- * -- 3. RLS 정책 설정 (모든 권한 허용 - 필요시 제한)
+ * -- 3. 바로가기 테이블 생성
+ * CREATE TABLE app_shortcuts (
+ *     id TEXT PRIMARY KEY,
+ *     label TEXT NOT NULL,
+ *     url TEXT NOT NULL,
+ *     type TEXT DEFAULT 'global',
+ *     "authorEmail" TEXT,
+ *     position INTEGER DEFAULT 0,
+ *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ * );
+ * 
+ * -- 4. RLS 정책 설정 (모든 권한 허용 - 필요시 제한)
  * ALTER TABLE school_schedules ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Enable access for all" ON school_schedules FOR ALL USING (true);
  * 
  * ALTER TABLE registered_users ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Enable access for all" ON registered_users FOR ALL USING (true);
+ * 
+ * ALTER TABLE app_shortcuts ENABLE ROW LEVEL SECURITY;
+ * CREATE POLICY "Enable access for all" ON app_shortcuts FOR ALL USING (true);
  */
 

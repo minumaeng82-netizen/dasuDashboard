@@ -6,7 +6,8 @@ import {
   FileText,
   Settings,
   LogOut,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -86,21 +87,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ))}
 
           {isAdmin && (
-            <button
-              onClick={() => {
-                onNavigate('/users');
-                onClose();
-              }}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                currentPath === '/users'
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-slate-800 hover:text-white text-blue-400"
-              )}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="font-medium">사용자 관리</span>
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  onNavigate('/shortcuts');
+                  onClose();
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  currentPath === '/shortcuts'
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white text-blue-400"
+                )}
+              >
+                <ExternalLink className="w-5 h-5" />
+                <span className="font-medium">바로가기 관리</span>
+              </button>
+              <button
+                onClick={() => {
+                  onNavigate('/users');
+                  onClose();
+                }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  currentPath === '/users'
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-slate-800 hover:text-white text-blue-400"
+                )}
+              >
+                <Settings className="w-5 h-5" />
+                <span className="font-medium">사용자 관리</span>
+              </button>
+            </>
           )}
         </nav>
 

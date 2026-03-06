@@ -5,6 +5,7 @@ import { TrainingBoard } from './pages/TrainingBoard';
 import { Calendar } from './pages/Calendar';
 import { Login } from './pages/Login';
 import { UserManagement } from './pages/UserManagement';
+import { ShortcutManagement } from './pages/ShortcutManagement';
 import { PasswordSettings } from './pages/Settings';
 import { User } from './types';
 
@@ -53,6 +54,8 @@ export default function App() {
         return <Calendar user={user} />;
       case '/users':
         return user?.role === 'admin' ? <UserManagement user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
+      case '/shortcuts':
+        return user?.role === 'admin' ? <ShortcutManagement user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
       case '/settings':
         return <PasswordSettings user={user} onUserUpdate={(updated) => {
           setUser(updated);
