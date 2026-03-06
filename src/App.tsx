@@ -8,6 +8,7 @@ import { UserManagement } from './pages/UserManagement';
 import { ShortcutManagement } from './pages/ShortcutManagement';
 import { PasswordSettings } from './pages/Settings';
 import { User } from './types';
+import { DeviceProvider } from './context/DeviceContext';
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState('/');
@@ -67,14 +68,16 @@ export default function App() {
   };
 
   return (
-    <Layout
-      currentPath={currentPath}
-      onNavigate={setCurrentPath}
-      user={user}
-      onLogout={handleLogout}
-    >
-      {renderPage()}
-    </Layout>
+    <DeviceProvider>
+      <Layout
+        currentPath={currentPath}
+        onNavigate={setCurrentPath}
+        user={user}
+        onLogout={handleLogout}
+      >
+        {renderPage()}
+      </Layout>
+    </DeviceProvider>
   );
 }
 

@@ -7,9 +7,14 @@ import {
   Settings,
   LogOut,
   X,
-  ExternalLink
+  ExternalLink,
+  Monitor,
+  Tablet,
+  Smartphone,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useDeviceMode } from '../context/DeviceContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -33,6 +38,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
   isAdmin
 }) => {
+  const { mode, setMode, isManual, resetToAuto } = useDeviceMode();
+  const isMobile = mode === 'Mobile';
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -44,8 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside className={cn(
-        "fixed top-0 left-0 h-full bg-slate-900 text-slate-300 w-64 z-50 transition-transform duration-300 lg:translate-x-0",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed top-0 left-0 h-full bg-slate-900 text-slate-300 w-64 z-50 transition-transform duration-300",
+        (mode === 'PC' || mode === 'Tablet') ? "translate-x-0" : (isOpen ? "translate-x-0" : "-translate-x-full")
       )}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
           <button
@@ -122,7 +130,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </nav>
 
-        <div className="absolute bottom-0 left-0 w-full p-4 border-t border-slate-800">
+        <div className="absolute bottom-0 left-0 w-full p-4 border-t border-slate-800 space-y-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">화면 최적화</span>
+              {!isManual && <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-md font-bold">AUTO</span>}
+            </div>
+            <div className="flex items-center justify-between bg-slate-800/50 p-1 rounded-xl border border-slate-700/50">
+              <button
+                onClick={resetToAuto}
+                className={cn(
+                  "p-2 rounded-lg transition-all flex-1 flex justify-center",
+                  !isManual ? "bg-white/10 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+                title="자동 반응형 모드"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setMode('PC')}
+                className={cn(
+                  "p-2 rounded-lg transition-all flex-1 flex justify-center",
+                  isManual && mode === 'PC' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+                title="PC 강제 고정"
+              >
+                <Monitor className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setMode('Tablet')}
+                className={cn(
+                  "p-2 rounded-lg transition-all flex-1 flex justify-center",
+                  isManual && mode === 'Tablet' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+                title="태블릿 강제 고정"
+              >
+                <Tablet className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setMode('Mobile')}
+                className={cn(
+                  "p-2 rounded-lg transition-all flex-1 flex justify-center",
+                  isManual && mode === 'Mobile' ? "bg-blue-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+                title="모바일 강제 고정"
+              >
+                <Smartphone className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
           <button
             onClick={() => {
               onNavigate('/settings');
@@ -139,7 +196,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="font-medium">내 설정</span>
           </button>
         </div>
-
       </aside>
     </>
   );

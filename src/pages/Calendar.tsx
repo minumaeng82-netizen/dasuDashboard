@@ -40,12 +40,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx-js-style';
 import { HOLIDAYS_2026 } from '../holidays';
+import { useDeviceMode } from '../context/DeviceContext';
 
 interface CalendarProps {
   user: User | null;
 }
 
 export const Calendar: React.FC<CalendarProps> = ({ user }) => {
+  const { mode } = useDeviceMode();
+  const isMobile = mode === 'Mobile';
+  const isTablet = mode === 'Tablet';
+
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -330,7 +335,6 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
       // 담당자
       const authors = Array.from(new Set(daySchedules.map(s => {
-        // 관리자 계정(이메일 없음 또는 특정 관리자 이메일)인 경우 '맹민우'로 표시
         if (!s.authorEmail || s.authorEmail.includes('admin')) return '맹민우';
         return userMap[s.authorEmail] || s.authorEmail.split('@')[0];
       }))).join(', ');
@@ -442,7 +446,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
   };
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full flex flex-col relative transition-all duration-500">
       {!isAuthenticated && (
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4 flex gap-3 items-center animate-in fade-in slide-in-from-top-2">
           <AlertCircle className="w-5 h-5 text-blue-500" />
@@ -452,7 +456,10 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
         {/* Calendar Header */}
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white">
+        <div className={cn(
+          "p-4 border-b border-slate-200 flex items-center justify-between bg-white",
+          isMobile && "flex-col gap-4"
+        )}>
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-bold text-slate-900">
               {format(currentMonth, 'yyyy년 MM월')}
@@ -471,15 +478,17 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                 <ChevronRight className="w-5 h-5 text-slate-600" />
               </button>
             </div>
-            <button
-              onClick={() => setCurrentMonth(new Date())}
-              className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              오늘
-            </button>
+            {!isMobile && (
+              <button
+                onClick={() => setCurrentMonth(new Date())}
+                className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                오늘
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className={cn("flex items-center gap-3", isMobile && "w-full justify-between")}>
             <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
               <button
                 onClick={() => setViewMode('all')}
@@ -490,7 +499,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                     : "text-slate-500 hover:text-slate-700"
                 )}
               >
-                학교 일정
+                {!isMobile ? '학교 일정' : '전체'}
               </button>
               <button
                 onClick={() => {
@@ -507,25 +516,27 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                     : "text-slate-500 hover:text-slate-700"
                 )}
               >
-                내 일정
+                {!isMobile ? '내 일정' : '내 일정'}
               </button>
             </div>
             {(isAuthenticated || isAdmin) && (
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleOpenPreview}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-sm active:scale-95"
-                  title="월간 교육활동 계획 미리보기 및 다운로드"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>엑셀</span>
-                </button>
+                {!isMobile && (
+                  <button
+                    onClick={handleOpenPreview}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-sm active:scale-95"
+                    title="월간 교육활동 계획 미리보기 및 다운로드"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>엑셀</span>
+                  </button>
+                )}
                 <button
                   onClick={() => openRegisterModal()}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-sm active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>일정 등록</span>
+                  <span className={isMobile ? "hidden" : "inline"}>일정 등록</span>
                 </button>
               </div>
             )}
@@ -534,34 +545,35 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
 
         {/* Calendar Grid */}
         <div className="flex-1 flex flex-col">
-          {/* Weekday Labels */}
-          <div className="grid grid-cols-7 border-b border-slate-100">
-            {weekDays.map((day, i) => (
-              <div
-                key={day}
-                className={cn(
-                  "py-3 text-center text-xs font-bold uppercase tracking-wider",
-                  i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-slate-400"
-                )}
-              >
-                {day}
-              </div>
-            ))}
-          </div>
+          {/* Weekday Labels (Hidden in Mobile) */}
+          {!isMobile && (
+            <div className="grid grid-cols-7 border-b border-slate-100">
+              {weekDays.map((day, i) => (
+                <div
+                  key={day}
+                  className={cn(
+                    "py-3 text-center text-xs font-bold uppercase tracking-wider",
+                    i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-slate-400"
+                  )}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Days Grid */}
-          <div className="flex-1 grid grid-cols-7 divide-x divide-y divide-slate-100">
+          <div className={cn(
+            "flex-1 grid divide-x divide-y divide-slate-100",
+            isMobile ? "grid-cols-1 overflow-y-auto" : "grid-cols-7"
+          )}>
             {calendarDays.map((day, i) => {
               const displaySchedules = schedules.filter(s => {
                 const sameDay = isSameDay(new Date(s.date), day);
                 if (!sameDay) return false;
-
-                // Show in 'Mine' view if it's my schedule
                 if (viewMode === 'mine') {
                   return s.authorEmail === user?.email;
                 }
-
-                // In 'All' view: Show ONLY public schedules
                 return !s.isPrivate;
               }).sort((a, b) => {
                 const timeA = a.timeRange || '99:99';
@@ -571,6 +583,9 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isToday = isSameDay(day, new Date());
               const isSelected = isSameDay(day, selectedDate);
+
+              // Skip non-current month days in mobile view for cleaner list
+              if (isMobile && !isCurrentMonth) return null;
 
               return (
                 <div
@@ -582,21 +597,36 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                     }
                   }}
                   className={cn(
-                    "min-h-[160px] p-2 transition-colors cursor-pointer flex flex-col gap-1 relative group",
+                    "transition-colors cursor-pointer flex gap-1 relative group",
+                    isMobile ? "min-h-[80px] p-4 border-b border-slate-50" : "min-h-[160px] p-2 flex-col",
                     !isCurrentMonth ? "bg-slate-100/30" : "bg-white hover:bg-slate-50",
                     isSelected && "bg-blue-50/30"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className={cn(
-                      "text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full transition-all",
-                      !isCurrentMonth ? "text-slate-300" :
-                        day.getDay() === 0 ? "text-red-500" :
-                          day.getDay() === 6 ? "text-blue-500" : "text-slate-600",
-                      isToday && "bg-blue-600 text-white font-bold shadow-md shadow-blue-200"
-                    )}>
-                      {format(day, 'd')}
-                    </span>
+                  <div className={cn(
+                    "flex items-center justify-between",
+                    isMobile ? "w-24 flex-shrink-0 flex-col justify-start gap-1" : "w-full"
+                  )}>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full transition-all",
+                        !isCurrentMonth ? "text-slate-300" :
+                          day.getDay() === 0 ? "text-red-500" :
+                            day.getDay() === 6 ? "text-blue-500" : "text-slate-600",
+                        isToday && "bg-blue-600 text-white font-bold shadow-md shadow-blue-200"
+                      )}>
+                        {format(day, 'd')}
+                      </span>
+                      {isMobile && (
+                        <span className={cn(
+                          "text-xs font-bold",
+                          day.getDay() === 0 ? "text-red-500" :
+                            day.getDay() === 6 ? "text-blue-500" : "text-slate-400"
+                        )}>
+                          ({weekDays[day.getDay()]})
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => {
@@ -611,8 +641,14 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-hidden space-y-1 mt-1">
-                    {displaySchedules.slice(0, 4).map(schedule => (
+                  <div className={cn(
+                    "flex-1 overflow-hidden space-y-1 mt-1",
+                    isMobile && "ml-4 border-l-2 border-slate-100 pl-4"
+                  )}>
+                    {displaySchedules.length === 0 && isMobile && (
+                      <p className="text-xs text-slate-300 italic py-2">일정 없음</p>
+                    )}
+                    {displaySchedules.slice(0, isMobile ? 10 : 4).map(schedule => (
                       <div
                         key={schedule.id}
                         className={cn(
@@ -638,7 +674,7 @@ export const Calendar: React.FC<CalendarProps> = ({ user }) => {
                         {schedule.title}
                       </div>
                     ))}
-                    {displaySchedules.length > 4 && (
+                    {!isMobile && displaySchedules.length > 4 && (
                       <div className="text-[9px] font-bold text-slate-400 pl-1 mt-0.5">
                         +{displaySchedules.length - 4}개 더 있음...
                       </div>

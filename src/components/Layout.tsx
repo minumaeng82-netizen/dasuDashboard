@@ -4,6 +4,7 @@ import { TopBar } from './TopBar';
 import { User } from '../types';
 import { ShortcutBar } from './ShortcutBar';
 import { cn } from '../lib/utils';
+import { useDeviceMode } from '../context/DeviceContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,6 +22,10 @@ export const Layout: React.FC<LayoutProps> = ({
   onLogout
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { mode } = useDeviceMode();
+
+  const isMobile = mode === 'Mobile';
+  const isTablet = mode === 'Tablet';
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -32,18 +37,22 @@ export const Layout: React.FC<LayoutProps> = ({
         isAdmin={user?.role === 'admin'}
       />
 
-      <div className="flex-1 flex flex-col lg:ml-64">
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        (mode === 'PC' || mode === 'Tablet') ? "ml-64" : "ml-0"
+      )}>
         <TopBar
           onMenuClick={() => setIsSidebarOpen(true)}
           user={user}
           onLogout={onLogout}
           onLoginClick={() => onNavigate('/login')}
         />
-        <ShortcutBar user={user} currentPath={currentPath} />
+        {!isMobile && !isTablet && <ShortcutBar user={user} currentPath={currentPath} mode={mode} />}
 
         <main className={cn(
           "flex-1 p-4 md:p-6 lg:p-8 mx-auto w-full",
-          currentPath === '/calendar' ? "max-w-none" : "max-w-7xl"
+          currentPath === '/calendar' ? "max-w-none" : "max-w-7xl",
+          isMobile && "p-2"
         )}>
           {children}
         </main>

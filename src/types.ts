@@ -41,7 +41,4 @@ export interface TrainingPost {
   authorEmail?: string;
   fileType?: string;
 }
-
-
-
-
+export type DeviceMode = 'PC' | 'Tablet' | 'Mobile';
