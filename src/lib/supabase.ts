@@ -52,7 +52,27 @@ export const supabase = (!isPlaceholder && supabaseUrl && supabaseAnonKey)
  *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
  * );
  * 
- * -- 4. RLS 정책 설정 (모든 권한 허용 - 필요시 제한)
+ * -- 4. 연수 자료 테이블 생성
+ * CREATE TABLE training_posts (
+ *     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+ *     title TEXT NOT NULL,
+ *     author TEXT NOT NULL,
+ *     date TEXT NOT NULL,
+ *     "pdfUrl" TEXT,
+ *     summary TEXT,
+ *     "authorEmail" TEXT,
+ *     "fileType" TEXT DEFAULT 'link',
+ *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ * );
+ * 
+ * -- 5. 시스템 설정 테이블 생성
+ * CREATE TABLE site_settings (
+ *     id TEXT PRIMARY KEY,
+ *     portal_name TEXT NOT NULL,
+ *     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ * );
+ * 
+ * -- 6. RLS 정책 설정 (모든 권한 허용 - 필요시 제한)
  * ALTER TABLE school_schedules ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Enable access for all" ON school_schedules FOR ALL USING (true);
  * 
@@ -61,5 +81,11 @@ export const supabase = (!isPlaceholder && supabaseUrl && supabaseAnonKey)
  * 
  * ALTER TABLE app_shortcuts ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Enable access for all" ON app_shortcuts FOR ALL USING (true);
+ * 
+ * ALTER TABLE training_posts ENABLE ROW LEVEL SECURITY;
+ * CREATE POLICY "Enable access for all" ON training_posts FOR ALL USING (true);
+ * 
+ * ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+ * CREATE POLICY "Enable access for all" ON site_settings FOR ALL USING (true);
  */
 

@@ -41,4 +41,10 @@ export interface TrainingPost {
   authorEmail?: string;
   fileType?: string;
 }
+export interface SystemSettings {
+  id: string;
+  portal_name: string;
+  updated_at?: string;
+}
+
 export type DeviceMode = 'PC' | 'Tablet' | 'Mobile';

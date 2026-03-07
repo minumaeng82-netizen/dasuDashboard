@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, User as UserIcon, Menu, LogOut, Sparkles, Monitor, Tablet, Smartphone, RotateCcw, MonitorSmartphone } from 'lucide-react';
 import { User } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDeviceMode } from '../context/DeviceContext';
 import { cn } from '../lib/utils';
+import { supabase } from '../lib/supabase';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -20,6 +21,41 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const { mode, setMode, isManual, resetToAuto } = useDeviceMode();
   const [showDeviceMenu, setShowDeviceMenu] = useState(false);
+  const [portalName, setPortalName] = useState('');
+
+  useEffect(() => {
+    const fetchPortalName = async () => {
+      const saved = localStorage.getItem('site_portal_name');
+      if (saved) setPortalName(saved);
+
+      if (supabase) {
+        try {
+          const { data } = await supabase
+            .from('site_settings')
+            .select('portal_name')
+            .eq('id', 'main')
+            .single();
+
+          if (data) {
+            setPortalName(data.portal_name);
+            localStorage.setItem('site_portal_name', data.portal_name);
+          }
+        } catch (e) {
+          console.error('Failed to fetch portal name:', e);
+        }
+      }
+    };
+
+    fetchPortalName();
+
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('site_portal_name');
+      if (saved) setPortalName(saved);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const isMobile = mode === 'Mobile';
   const isTablet = mode === 'Tablet';
@@ -41,20 +77,20 @@ export const TopBar: React.FC<TopBarProps> = ({
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2 sm:gap-3"
         >
-          <div className="flex w-10 h-10 items-center justify-center overflow-hidden">
-            <img
-              src="/icon.png"
-              alt="Icon"
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<div class="w-6 h-6 bg-blue-600 rounded-md" />';
-              }}
-            />
+          <div className="flex w-10 h-10 items-center justify-center overflow-hidden rounded-full shrink-0">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-xl md:text-2xl font-black tracking-tight flex items-center">
-            <span className="text-blue-600 mr-2">김천다수</span>
+            <span className="text-blue-600 mr-1.5 md:mr-2">김천다수</span>
             <span className="text-slate-900">교무포털</span>
+            {portalName && (
+              <div className="flex items-center">
+                <span className="w-px h-5 md:h-6 bg-slate-200 mx-2 md:mx-4 hidden sm:block" />
+                <span className="text-slate-500 font-medium text-lg md:text-xl truncate max-w-[150px] md:max-w-none">
+                  {portalName}
+                </span>
+              </div>
+            )}
           </h1>
         </motion.div>
       </div>

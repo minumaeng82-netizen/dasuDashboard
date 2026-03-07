@@ -5,6 +5,8 @@ import {
   BookOpen,
   FileText,
   Settings,
+  Settings2,
+  ShieldCheck,
   LogOut,
   X,
   ExternalLink,
@@ -60,13 +62,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={() => onNavigate('/')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<span class="text-slate-900 font-bold">다수</span>';
-              }} />
+            <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-full shrink-0">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">김천다수 교무포털</span>
+            <span className="text-white font-black text-lg tracking-tighter">김천다수교무포털</span>
           </button>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-slate-800 rounded">
             <X className="w-5 h-5" />
@@ -113,18 +112,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
               <button
                 onClick={() => {
-                  onNavigate('/users');
+                  onNavigate('/admin-settings');
                   onClose();
                 }}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                  currentPath === '/users'
+                  currentPath === '/admin-settings'
                     ? "bg-blue-600 text-white"
                     : "hover:bg-slate-800 hover:text-white text-blue-400"
                 )}
               >
-                <Settings className="w-5 h-5" />
-                <span className="font-medium">사용자 관리</span>
+                <Settings2 className="w-5 h-5" />
+                <span className="font-medium">설정</span>
               </button>
             </>
           )}

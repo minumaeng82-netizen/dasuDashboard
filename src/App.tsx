@@ -4,7 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { TrainingBoard } from './pages/TrainingBoard';
 import { Calendar } from './pages/Calendar';
 import { Login } from './pages/Login';
-import { UserManagement } from './pages/UserManagement';
+import { AdminSettings } from './pages/AdminSettings';
 import { ShortcutManagement } from './pages/ShortcutManagement';
 import { PasswordSettings } from './pages/Settings';
 import { User } from './types';
@@ -53,8 +53,10 @@ export default function App() {
 
       case '/calendar':
         return <Calendar user={user} />;
+      case '/admin-settings':
+        return user?.role === 'admin' ? <AdminSettings user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
       case '/users':
-        return user?.role === 'admin' ? <UserManagement user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
+        return user?.role === 'admin' ? <AdminSettings user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
       case '/shortcuts':
         return user?.role === 'admin' ? <ShortcutManagement user={user} /> : <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
       case '/settings':
