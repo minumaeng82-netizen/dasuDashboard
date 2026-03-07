@@ -560,22 +560,42 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
                                 <p className="text-xs text-slate-400 ml-1 italic">* 로고와 '김천다수 교무포털'은 수정할 수 없으며, 그 뒤에 표시됩니다.</p>
                             </div>
 
-                            <div className="p-6 bg-slate-900 rounded-2xl text-white shadow-inner">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">미리보기 (Header Preview)</p>
-                                <div className="flex items-center gap-3 py-3 px-5 bg-white rounded-xl shadow-lg">
-                                    <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-full shrink-0">
-                                        <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
+                            <div className="p-6 bg-slate-900 rounded-2xl text-white shadow-inner space-y-4">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">데스크톱 미리보기</p>
+                                    <div className="flex items-center gap-3 py-3 px-5 bg-white rounded-xl shadow-lg">
+                                        <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-full shrink-0">
+                                            <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
+                                        </div>
+                                        <h1 className="text-lg font-black flex items-center">
+                                            <span className="text-blue-600 mr-2">김천다수</span>
+                                            <span className="text-slate-900">교무포털</span>
+                                            {portalName && (
+                                                <>
+                                                    <span className="w-px h-4 bg-slate-200 mx-3" />
+                                                    <span className="text-slate-500 font-medium">{portalName}</span>
+                                                </>
+                                            )}
+                                        </h1>
                                     </div>
-                                    <h1 className="text-lg font-black flex items-center">
-                                        <span className="text-blue-600 mr-2">김천다수</span>
-                                        <span className="text-slate-900">교무포털</span>
-                                        {portalName && (
-                                            <>
-                                                <span className="w-px h-4 bg-slate-200 mx-3" />
-                                                <span className="text-slate-500 font-medium">{portalName}</span>
-                                            </>
-                                        )}
-                                    </h1>
+                                </div>
+
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">모바일 미리보기</p>
+                                    <div className="flex items-center gap-3 py-3 px-5 bg-white rounded-xl shadow-lg max-w-[280px]">
+                                        <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-full shrink-0">
+                                            <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
+                                        </div>
+                                        <h1 className="flex flex-col items-start -space-y-1">
+                                            <div className="flex items-center text-sm font-black">
+                                                <span className="text-blue-600">김천다수</span>
+                                                <span className="text-slate-900 ml-1">교무포털</span>
+                                            </div>
+                                            {portalName && (
+                                                <span className="text-slate-500 font-medium text-[10px]">{portalName}</span>
+                                            )}
+                                        </h1>
+                                    </div>
                                 </div>
                             </div>
 

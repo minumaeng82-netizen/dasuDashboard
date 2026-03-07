@@ -80,13 +80,23 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="flex w-10 h-10 items-center justify-center overflow-hidden rounded-full shrink-0">
             <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight flex items-center">
-            <span className="text-blue-600 mr-1.5 md:mr-2">김천다수</span>
-            <span className="text-slate-900">교무포털</span>
+          <h1 className={cn(
+            "font-black tracking-tight flex",
+            isMobile ? "flex-col items-start" : "items-center"
+          )}>
+            <div className="flex items-center text-xl md:text-2xl">
+              <span className="text-blue-600 mr-1.5 md:mr-2">김천다수</span>
+              <span className="text-slate-900">교무포털</span>
+            </div>
             {portalName && (
               <div className="flex items-center">
-                <span className="w-px h-5 md:h-6 bg-slate-200 mx-2 md:mx-4 hidden sm:block" />
-                <span className="text-slate-500 font-medium text-lg md:text-xl truncate max-w-[150px] md:max-w-none">
+                {!isMobile && (
+                  <span className="w-px h-5 md:h-6 bg-slate-200 mx-2 md:mx-4 hidden sm:block" />
+                )}
+                <span className={cn(
+                  "text-slate-500 font-medium truncate max-w-[150px] md:max-w-none",
+                  isMobile ? "text-xs mt-0.5" : "text-lg md:text-xl"
+                )}>
                   {portalName}
                 </span>
               </div>

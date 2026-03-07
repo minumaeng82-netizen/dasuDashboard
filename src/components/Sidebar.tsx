@@ -41,6 +41,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isAdmin
 }) => {
   const { mode, setMode, isManual, resetToAuto } = useDeviceMode();
+  const [portalName, setPortalName] = React.useState('');
+
+  React.useEffect(() => {
+    const fetchPortalName = async () => {
+      const saved = localStorage.getItem('site_portal_name');
+      if (saved) setPortalName(saved);
+
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        try {
+          const { data } = await (await import('../lib/supabase')).supabase
+            .from('site_settings')
+            .select('portal_name')
+            .eq('id', 'main')
+            .single();
+
+          if (data) {
+            setPortalName(data.portal_name);
+            localStorage.setItem('site_portal_name', data.portal_name);
+          }
+        } catch (e) {
+          console.error('Failed to fetch portal name in sidebar:', e);
+        }
+      }
+    };
+
+    fetchPortalName();
+
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem('site_portal_name');
+      if (saved) setPortalName(saved);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const isMobile = mode === 'Mobile';
 
   return (
@@ -65,7 +101,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-full shrink-0">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="text-white font-black text-lg tracking-tighter">김천다수교무포털</span>
+            <div className={cn(
+              "flex flex-col items-start",
+              !isMobile && "gap-0"
+            )}>
+              <span className="text-white font-black text-lg tracking-tighter leading-tight">김천다수교무포털</span>
+              {portalName && (
+                <span className="text-slate-400 font-medium text-[10px] leading-tight mt-0.5">
+                  {portalName}
+                </span>
+              )}
+            </div>
           </button>
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-slate-800 rounded">
             <X className="w-5 h-5" />
