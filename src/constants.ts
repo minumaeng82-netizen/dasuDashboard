@@ -45,7 +45,8 @@ export const DUMMY_TRAININGS: TrainingPost[] = [
     author: '교육연구부',
     date: '2026-02-20',
     summary: '신학년도 교육과정 수립을 위한 필수 지침 안내입니다.',
-    pdfUrl: 'https://pdfobject.com/pdf/sample.pdf'
+    pdfUrl: 'https://pdfobject.com/pdf/sample.pdf',
+    showOnDashboard: true
   },
   {
     id: '2',
@@ -53,7 +54,8 @@ export const DUMMY_TRAININGS: TrainingPost[] = [
     author: '정보부',
     date: '2026-02-18',
     summary: 'AI 코스웨어 활용 및 태블릿 PC 관리 규정 안내.',
-    pdfUrl: 'https://pdfobject.com/pdf/sample.pdf'
+    pdfUrl: 'https://pdfobject.com/pdf/sample.pdf',
+    showOnDashboard: false
   }
 
 ];

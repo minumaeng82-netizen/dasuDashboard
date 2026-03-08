@@ -29,7 +29,7 @@ interface SidebarProps {
 const MENU_ITEMS = [
   { icon: LayoutDashboard, label: '대시보드', path: '/' },
   { icon: Calendar, label: '일정 관리', path: '/calendar' },
-  { icon: BookOpen, label: '두고두고 볼 것들', path: '/training' },
+  { icon: BookOpen, label: '연수자료실', path: '/training' },
 ];
 
 

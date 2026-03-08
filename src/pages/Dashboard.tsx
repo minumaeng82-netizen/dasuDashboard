@@ -118,6 +118,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
         const { data, error } = await supabase
           .from('training_posts')
           .select('*')
+          .eq('showOnDashboard', true)
           .order('date', { ascending: false })
           .limit(5);
 
@@ -128,13 +129,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
       }
       const saved = localStorage.getItem('training_posts');
       if (saved && saved !== 'undefined') {
-        setTrainings(JSON.parse(saved).slice(0, 5));
+        const allPosts = JSON.parse(saved) as TrainingPost[];
+        setTrainings(allPosts.filter(p => p.showOnDashboard).slice(0, 5));
       } else {
-        setTrainings(DUMMY_TRAININGS.slice(0, 5));
+        setTrainings(DUMMY_TRAININGS.filter(p => p.showOnDashboard).slice(0, 5));
       }
     } catch (err) {
       console.error('Failed to load dashboard trainings:', err);
-      setTrainings(DUMMY_TRAININGS.slice(0, 5));
+      setTrainings(DUMMY_TRAININGS.filter(p => p.showOnDashboard).slice(0, 5));
     }
   };
 
@@ -350,7 +352,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ isAuthenticated, isAdmin, 
         )}
 
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-2">두고두고 볼 것들</h2>
+          <h2 className="text-2xl font-bold mb-2">연수자료실</h2>
           <p className="text-slate-400 text-sm">자주 확인해야 하는 중요 공지 및 연수</p>
         </div>
 

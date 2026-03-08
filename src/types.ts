@@ -40,6 +40,7 @@ export interface TrainingPost {
   summary: string;
   authorEmail?: string;
   fileType?: string;
+  showOnDashboard?: boolean;
 }
 export interface SystemSettings {
   id: string;

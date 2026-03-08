@@ -7,7 +7,8 @@ import {
   Eye,
   MoreVertical,
   Filter,
-  X
+  X,
+  LayoutDashboard
 } from 'lucide-react';
 import { DUMMY_TRAININGS } from '../constants';
 import { motion, AnimatePresence } from 'motion/react';
@@ -33,6 +34,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
   const [newAuthor, setNewAuthor] = useState('');
   const [newSummary, setNewSummary] = useState('');
   const [newUrl, setNewUrl] = useState('');
+  const [showOnDashboard, setShowOnDashboard] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +90,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
 
     try {
       if (editingId) {
-        const updateData = { title: newTitle, author: newAuthor, summary: newSummary, pdfUrl: newUrl };
+        const updateData = { title: newTitle, author: newAuthor, summary: newSummary, pdfUrl: newUrl, showOnDashboard };
         if (supabase) {
           const { error } = await supabase
             .from('training_posts')
@@ -113,7 +115,8 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
           summary: newSummary,
           authorEmail: user?.email,
           pdfUrl: newUrl,
-          fileType: 'link'
+          fileType: 'link',
+          showOnDashboard
         };
 
         if (supabase) {
@@ -136,6 +139,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
       setNewAuthor('');
       setNewSummary('');
       setNewUrl('');
+      setShowOnDashboard(false);
       setEditingId(null);
       setIsUploadOpen(false);
     } catch (err) {
@@ -153,6 +157,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
     setNewAuthor(post.author);
     setNewSummary(post.summary);
     setNewUrl(post.pdfUrl || '');
+    setShowOnDashboard(!!post.showOnDashboard);
     setIsUploadOpen(true);
   };
 
@@ -197,7 +202,7 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">두고두고 볼 것들</h1>
+          <h1 className="text-2xl font-bold text-slate-900">연수자료실</h1>
           <p className="text-slate-500 mt-1">학교 내 중요한 자료 및 연수 내용을 언제든 확인하세요.</p>
         </div>
 
@@ -279,11 +284,19 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
                     <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                       {post.title}
                     </span>
-                    {post.summary && (
-                      <span className="text-xs text-slate-400 mt-0.5 line-clamp-1">
-                        {post.summary}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {post.summary && (
+                        <span className="text-xs text-slate-400 line-clamp-1">
+                          {post.summary}
+                        </span>
+                      )}
+                      {post.showOnDashboard && (
+                        <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-1 border border-blue-100 flex-shrink-0">
+                          <LayoutDashboard className="w-3 h-3" />
+                          DASHBOARD
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-500 font-medium">
@@ -561,6 +574,34 @@ export const TrainingBoard: React.FC<TrainingBoardProps> = ({ user }) => {
                     placeholder="문서의 핵심 내용을 간략히 적어주세요."
                     className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all h-32 resize-none font-medium text-sm leading-relaxed"
                   />
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 group-hover:border-blue-200 transition-all flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                      showOnDashboard ? "bg-blue-600 text-white" : "bg-white text-slate-400 border border-slate-200"
+                    )}>
+                      <LayoutDashboard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm">대시보드 노출</h4>
+                      <p className="text-xs text-slate-500">메인 대시보드 화면에 이 자료를 고정합니다.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowOnDashboard(!showOnDashboard)}
+                    className={cn(
+                      "w-12 h-6 rounded-full relative transition-colors duration-200 outline-none",
+                      showOnDashboard ? "bg-blue-600" : "bg-slate-200"
+                    )}
+                  >
+                    <div className={cn(
+                      "absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-200",
+                      showOnDashboard ? "left-7" : "left-1"
+                    )} />
+                  </button>
                 </div>
 
                 <div className="pt-6 flex gap-4">
