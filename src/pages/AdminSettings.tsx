@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download, RefreshCcw, Edit2, X, Settings2, Layout as LayoutIcon, Save } from 'lucide-react';
+import { Users, Upload, FileText, AlertCircle, CheckCircle2, UserPlus, Trash2, Mail, Shield, Download, RefreshCcw, Edit2, X, Settings2, Layout as LayoutIcon, Save, Building2, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { User, SystemSettings } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -9,8 +9,17 @@ interface AdminSettingsProps {
     user: User | null;
 }
 
+export interface RegularReservation {
+    id: string;
+    roomName: string;
+    dayOfWeek: number; // 1:월, 2:화, 3:수, 4:목, 5:금
+    timeRange: string;
+    classGrade: string;
+    userName: string;
+}
+
 export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
-    const [activeTab, setActiveTab] = useState<'users' | 'title'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'title' | 'special'>('users');
     const [users, setUsers] = useState<User[]>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -24,9 +33,28 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
     const [newName, setNewName] = useState('');
     const [newRole, setNewRole] = useState<'admin' | 'user'>('user');
 
+    // Special Room Management State
+    const [regularReservations, setRegularReservations] = useState<RegularReservation[]>([]);
+    const [regSelectedRoom, setRegSelectedRoom] = useState('체육관');
+    
+    const [isRegModalOpen, setIsRegModalOpen] = useState(false);
+    const [regEditingId, setRegEditingId] = useState<string | null>(null);
+    const [regDay, setRegDay] = useState<number>(1);
+    const [regTimeRange, setRegTimeRange] = useState('1교시');
+    const [regClassGrade, setRegClassGrade] = useState('1-1');
+
     useEffect(() => {
         fetchUsers();
         fetchSystemSettings();
+        const savedRegs = localStorage.getItem('room_regular_reservations');
+        if (savedRegs) {
+            try { 
+                const parsed = JSON.parse(savedRegs).map((r: any) => 
+                    r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r
+                );
+                setRegularReservations(parsed); 
+            } catch(e){}
+        }
     }, []);
 
     const fetchUsers = async () => {
@@ -159,7 +187,6 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
             }
 
             setMessage({ type: 'success', text: '상단 제목이 성공적으로 변경되었습니다.' });
-            // Refresh to apply changes globally
             window.dispatchEvent(new Event('storage'));
         } catch (err) {
             console.error('Failed to save title:', err);
@@ -167,6 +194,56 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
         } finally {
             setIsSavingTitle(false);
         }
+    };
+
+    const openRegModal = (dayCode: number, period: string, existingReg?: RegularReservation) => {
+        setRegDay(dayCode);
+        setRegTimeRange(period);
+        if (existingReg) {
+            setRegEditingId(existingReg.id);
+            setRegClassGrade(existingReg.classGrade);
+        } else {
+            setRegEditingId(null);
+            setRegClassGrade('1-1');
+        }
+        setIsRegModalOpen(true);
+    };
+
+    const handleRegModalSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        let updated = [...regularReservations];
+        if (regEditingId) {
+            const idx = updated.findIndex(r => r.id === regEditingId);
+            if (idx > -1) {
+                updated[idx].classGrade = regClassGrade;
+            }
+            setMessage({ type: 'success', text: '정기 시간표 내용이 수정되었습니다.' });
+        } else {
+            updated.push({
+                id: Math.random().toString(36).substr(2, 9),
+                roomName: regSelectedRoom,
+                dayOfWeek: regDay,
+                timeRange: regTimeRange,
+                classGrade: regClassGrade,
+                userName: user?.name || user?.email?.split('@')[0] || '관리자'
+            });
+            setMessage({ type: 'success', text: '정기 시간표가 등록되었습니다.' });
+        }
+        setRegularReservations(updated);
+        localStorage.setItem('room_regular_reservations', JSON.stringify(updated));
+        setIsRegModalOpen(false);
+    };
+
+    const deleteRegReservation = () => {
+        if (!regEditingId) return;
+        if (!window.confirm('이 정기 시간표 구성을 삭제하시겠습니까?')) return;
+        
+        const updated = regularReservations.filter(r => r.id !== regEditingId);
+        setRegularReservations(updated);
+        localStorage.setItem('room_regular_reservations', JSON.stringify(updated));
+        setMessage({ type: 'success', text: '해당 정기 시간표가 삭제되었습니다.' });
+        setIsRegModalOpen(false);
     };
 
     const handleDownloadTemplate = () => {
@@ -323,11 +400,11 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
                     <p className="text-slate-500 mt-1">사용자 및 시스템 환경을 관리할 수 있습니다.</p>
                 </div>
 
-                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 overflow-x-auto scrollbar-hide shrink-0">
                     <button
                         onClick={() => setActiveTab('users')}
                         className={cn(
-                            "px-6 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center gap-2",
+                            "whitespace-nowrap px-6 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center gap-2",
                             activeTab === 'users' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                         )}
                     >
@@ -337,12 +414,22 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
                     <button
                         onClick={() => setActiveTab('title')}
                         className={cn(
-                            "px-6 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center gap-2",
+                            "whitespace-nowrap px-6 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center gap-2",
                             activeTab === 'title' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                         )}
                     >
                         <LayoutIcon className="w-4 h-4" />
                         제목 관리
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('special')}
+                        className={cn(
+                            "whitespace-nowrap px-6 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center gap-2",
+                            activeTab === 'special' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        )}
+                    >
+                        <Building2 className="w-4 h-4" />
+                        특별실 관리
                     </button>
                 </div>
             </div>
@@ -365,7 +452,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
                 )}
             </AnimatePresence>
 
-            {activeTab === 'users' ? (
+            {activeTab === 'users' && (
                 <div className="space-y-8 animate-in slide-in-from-left-4 duration-500">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex flex-wrap items-center gap-3">
@@ -529,7 +616,9 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
                         </div>
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {activeTab === 'title' && (
                 <div className="animate-in slide-in-from-right-4 duration-500">
                     <div className="max-w-2xl bg-white rounded-3xl border border-slate-200 p-8 shadow-xl">
                         <div className="flex items-center gap-4 mb-8">
@@ -617,6 +706,197 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
                     </div>
                 </div>
             )}
+
+            {activeTab === 'special' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col p-4 md:p-6 min-h-[500px]">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-100 gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Building2 className="w-6 h-6 text-blue-600" />
+                                    정기 특별실 시간표 달력
+                                </h2>
+                                <p className="text-slate-500 mt-1">요일별 교시 칸을 클릭하여 고정 시간표를 등록하면, 사용자의 특별실 예약 메뉴에 영구 반영됩니다.</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row gap-6 mt-6 flex-1 h-full overflow-hidden">
+                            {/* Room Selector */}
+                            <div className="w-full md:w-56 flex flex-row md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide flex-shrink-0">
+                                <h3 className="font-bold text-slate-700 mb-2 px-2 hidden md:block">특별실 선택</h3>
+                                {['체육관', '전담실', '과학실'].map(room => (
+                                    <button
+                                        key={room}
+                                        onClick={() => setRegSelectedRoom(room)}
+                                        className={cn(
+                                            "whitespace-nowrap flex-shrink-0 text-left px-4 py-3 rounded-xl font-bold transition-all border",
+                                            regSelectedRoom === room
+                                                ? room === '체육관' ? 'bg-red-50 text-red-600 border-red-100/50 shadow-sm'
+                                                : room === '과학실' ? 'bg-emerald-50 text-emerald-600 border-emerald-100/50 shadow-sm'
+                                                : 'bg-blue-50 text-blue-600 border-blue-100/50 shadow-sm'
+                                                : "text-slate-600 hover:bg-slate-50 border-transparent"
+                                        )}
+                                    >
+                                        {room}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Weekly Grid */}
+                            <div className="flex-1 flex flex-col min-w-0">
+                                <h3 className="text-xl font-black text-slate-800 mb-4 px-2 flex items-center gap-2">
+                                    <CalendarIcon className={cn("w-5 h-5", regSelectedRoom === '체육관' ? "text-red-500" : regSelectedRoom === '과학실' ? "text-emerald-500" : "text-blue-500")} />
+                                    {regSelectedRoom} 고정 시간표
+                                </h3>
+                                
+                                <div className="flex-1 border border-slate-200 rounded-xl overflow-y-auto bg-white flex flex-col min-w-[500px]">
+                                    {/* Weekdays Header */}
+                                    <div className="grid grid-cols-5 border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
+                                        {[1, 2, 3, 4, 5].map((dayCode) => (
+                                            <div key={dayCode} className="py-2 text-center text-xs font-bold tracking-wider text-slate-500">
+                                                {['일', '월', '화', '수', '목', '금', '토'][dayCode]}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Grid Content */}
+                                    <div className="flex-1 grid grid-cols-5 divide-x divide-slate-100">
+                                        {[1, 2, 3, 4, 5].map((dayCode) => {
+                                            const dayRegs = regularReservations.filter(r => r.roomName === regSelectedRoom && r.dayOfWeek === dayCode);
+                                            return (
+                                                <div key={dayCode} className="p-2 w-full bg-white flex flex-col min-h-[200px]">
+                                                    <div className="flex-1 flex flex-col border border-slate-200 rounded-md overflow-hidden bg-white divide-y divide-slate-100 shadow-sm">
+                                                        {['1교시', '2교시', '3교시', '4교시', '5교시', '6교시', '7교시', '8교시'].map(period => {
+                                                            const reservation = dayRegs.find(r => r.timeRange === period);
+                                                            
+                                                            if (reservation) {
+                                                                const eventColor = reservation.roomName === '체육관' ? 'bg-red-50 text-red-700 hover:bg-red-100'
+                                                                                : reservation.roomName === '과학실' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100';
+                                                                const borderColor = reservation.roomName === '체육관' ? 'border-red-200'
+                                                                                : reservation.roomName === '과학실' ? 'border-emerald-200'
+                                                                                : 'border-blue-200';
+
+                                                                return (
+                                                                    <div 
+                                                                        key={period} 
+                                                                        onClick={() => openRegModal(dayCode, period, reservation)}
+                                                                        className={cn("px-1.5 py-1.5 text-[10px] sm:text-[11px] font-bold flex items-center cursor-pointer transition-colors group/res", eventColor)}
+                                                                    >
+                                                                        <span className="opacity-70 flex-shrink-0 w-6 text-center">{period.replace('교시', '')}</span>
+                                                                        <span className={cn("flex-1 truncate border-l ml-1 pl-1.5", borderColor)}>
+                                                                            📌 {reservation.classGrade}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            } else {
+                                                                return (
+                                                                    <div
+                                                                        key={period}
+                                                                        onClick={() => openRegModal(dayCode, period)}
+                                                                        className="px-1.5 py-1.5 text-[10px] sm:text-[11px] text-slate-400 bg-white hover:bg-slate-50 cursor-pointer flex items-center transition-colors group/slot"
+                                                                    >
+                                                                        <span className="opacity-50 flex-shrink-0 w-6 text-center">{period.replace('교시', '')}</span>
+                                                                        <span className="flex-1 opacity-0 group-hover/slot:opacity-100 transition-opacity ml-1 pl-1.5 border-l border-slate-200 text-slate-400 font-medium truncate">+ 입력</span>
+                                                                    </div>
+                                                                );
+                                                            }
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Special Room Calendar Edit Modal */}
+            <AnimatePresence>
+                {isRegModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-200 text-slate-900"
+                        >
+                            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                        {regEditingId ? <Edit2 className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">{regEditingId ? '정기 시간표 변경' : '정기 시간표 입력'}</h3>
+                                        <p className="text-sm font-medium text-blue-600">
+                                            {regSelectedRoom} / {['일','월','화','수','목','금','토'][regDay]}요일 / {regTimeRange}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsRegModalOpen(false)}
+                                    className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                                >
+                                    <X className="w-6 h-6 text-slate-400" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleRegModalSubmit} className="p-6 space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 mx-1">사용 학반</label>
+                                    <select
+                                        value={['1-1', '2-1', '3-1', '4-1', '5-1', '5-2', '6-1'].includes(regClassGrade) ? regClassGrade : "직접 입력"}
+                                        onChange={(e) => setRegClassGrade(e.target.value === "직접 입력" ? "" : e.target.value)}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold cursor-pointer"
+                                        required
+                                    >
+                                        <option value="1-1">1-1</option>
+                                        <option value="2-1">2-1</option>
+                                        <option value="3-1">3-1</option>
+                                        <option value="4-1">4-1</option>
+                                        <option value="5-1">5-1</option>
+                                        <option value="5-2">5-2</option>
+                                        <option value="6-1">6-1</option>
+                                        <option value="직접 입력">직접 입력 (직접 지정)</option>
+                                    </select>
+                                    {!['1-1', '2-1', '3-1', '4-1', '5-1', '5-2', '6-1'].includes(regClassGrade) && (
+                                       <input
+                                         type="text"
+                                         placeholder="사용 학반 또는 목적을 직접 입력하세요"
+                                         value={regClassGrade}
+                                         onChange={(e) => setRegClassGrade(e.target.value)}
+                                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all mt-2"
+                                         required
+                                       />
+                                    )}
+                                </div>
+
+                                <div className="pt-4 flex gap-3">
+                                    {regEditingId && (
+                                        <button
+                                            type="button"
+                                            onClick={deleteRegReservation}
+                                            className="px-4 py-3 border border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 flex items-center justify-center gap-2 transition-all active:scale-95"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-bold shadow-md transition-all active:scale-95 flex justify-center items-center gap-2"
+                                    >
+                                        <CheckCircle2 className="w-5 h-5" />
+                                        {regEditingId ? '변경 완료' : '매주 고정 등록'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {isEditModalOpen && (

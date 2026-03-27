@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { TrainingBoard } from './pages/TrainingBoard';
+import { SpecialRoom } from './pages/SpecialRoom';
 import { Calendar } from './pages/Calendar';
 import { Login } from './pages/Login';
 import { AdminSettings } from './pages/AdminSettings';
@@ -50,7 +51,8 @@ export default function App() {
         return <Dashboard isAuthenticated={!!user} isAdmin={user?.role === 'admin'} />;
       case '/training':
         return <TrainingBoard user={user} />;
-
+      case '/reservations':
+        return <SpecialRoom user={user} />;
       case '/calendar':
         return <Calendar user={user} />;
       case '/admin-settings':
