@@ -46,16 +46,29 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
     useEffect(() => {
         fetchUsers();
         fetchSystemSettings();
-        const savedRegs = localStorage.getItem('room_regular_reservations');
-        if (savedRegs) {
-            try { 
-                const parsed = JSON.parse(savedRegs).map((r: any) => 
-                    r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r
-                );
-                setRegularReservations(parsed); 
-            } catch(e){}
-        }
+        fetchRegularReservations();
     }, []);
+
+    const fetchRegularReservations = async () => {
+        let finalReg: RegularReservation[] = [];
+        if (supabase) {
+            try {
+                const { data, error } = await supabase.from('room_regular_reservations').select('*');
+                if (!error && data) {
+                    finalReg = data;
+                }
+            } catch(e) { console.error(e) }
+        }
+        if (finalReg.length === 0) {
+            const savedRegs = localStorage.getItem('room_regular_reservations');
+            if (savedRegs) {
+                try { finalReg = JSON.parse(savedRegs) as RegularReservation[]; } catch(e){}
+            }
+        }
+        finalReg = finalReg.map(r => r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r);
+        setRegularReservations(finalReg);
+        localStorage.setItem('room_regular_reservations', JSON.stringify(finalReg));
+    };
 
     const fetchUsers = async () => {
         try {
@@ -209,39 +222,57 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
         setIsRegModalOpen(true);
     };
 
-    const handleRegModalSubmit = (e: React.FormEvent) => {
+    const handleRegModalSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
         let updated = [...regularReservations];
+        let targetData: RegularReservation | null = null;
+        
         if (regEditingId) {
             const idx = updated.findIndex(r => r.id === regEditingId);
             if (idx > -1) {
                 updated[idx].classGrade = regClassGrade;
+                targetData = updated[idx];
             }
             setMessage({ type: 'success', text: '정기 시간표 내용이 수정되었습니다.' });
         } else {
-            updated.push({
+            targetData = {
                 id: Math.random().toString(36).substr(2, 9),
                 roomName: regSelectedRoom,
                 dayOfWeek: regDay,
                 timeRange: regTimeRange,
                 classGrade: regClassGrade,
                 userName: user?.name || user?.email?.split('@')[0] || '관리자'
-            });
+            };
+            updated.push(targetData);
             setMessage({ type: 'success', text: '정기 시간표가 등록되었습니다.' });
         }
         setRegularReservations(updated);
         localStorage.setItem('room_regular_reservations', JSON.stringify(updated));
+        
+        if (targetData && supabase) {
+            try {
+                await supabase.from('room_regular_reservations').upsert(targetData);
+            } catch(e) { console.error(e); }
+        }
+
         setIsRegModalOpen(false);
     };
 
-    const deleteRegReservation = () => {
+    const deleteRegReservation = async () => {
         if (!regEditingId) return;
         if (!window.confirm('이 정기 시간표 구성을 삭제하시겠습니까?')) return;
         
         const updated = regularReservations.filter(r => r.id !== regEditingId);
         setRegularReservations(updated);
         localStorage.setItem('room_regular_reservations', JSON.stringify(updated));
+        
+        if (supabase) {
+            try {
+                await supabase.from('room_regular_reservations').delete().eq('id', regEditingId);
+            } catch(e) { console.error(e); }
+        }
+
         setMessage({ type: 'success', text: '해당 정기 시간표가 삭제되었습니다.' });
         setIsRegModalOpen(false);
     };

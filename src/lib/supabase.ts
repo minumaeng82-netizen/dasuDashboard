@@ -87,5 +87,32 @@ export const supabase = (!isPlaceholder && supabaseUrl && supabaseAnonKey)
  * 
  * ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
  * CREATE POLICY "Enable access for all" ON site_settings FOR ALL USING (true);
+ *
+ * -- 7. 특별실 예약 테이블 생성
+ * CREATE TABLE room_reservations (
+ *     id TEXT PRIMARY KEY,
+ *     "roomName" TEXT NOT NULL,
+ *     date TEXT NOT NULL,
+ *     "timeRange" TEXT NOT NULL,
+ *     "classGrade" TEXT NOT NULL,
+ *     "userName" TEXT NOT NULL,
+ *     "userEmail" TEXT,
+ *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ * );
+ * ALTER TABLE room_reservations ENABLE ROW LEVEL SECURITY;
+ * CREATE POLICY "Enable access for all" ON room_reservations FOR ALL USING (true);
+ *
+ * -- 8. 정기 특별실 예약 테이블 생성
+ * CREATE TABLE room_regular_reservations (
+ *     id TEXT PRIMARY KEY,
+ *     "roomName" TEXT NOT NULL,
+ *     "dayOfWeek" INTEGER NOT NULL,
+ *     "timeRange" TEXT NOT NULL,
+ *     "classGrade" TEXT NOT NULL,
+ *     "userName" TEXT NOT NULL,
+ *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ * );
+ * ALTER TABLE room_regular_reservations ENABLE ROW LEVEL SECURITY;
+ * CREATE POLICY "Enable access for all" ON room_regular_reservations FOR ALL USING (true);
  */
 

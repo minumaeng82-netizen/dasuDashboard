@@ -14,6 +14,7 @@ import { ko } from 'date-fns/locale';
 import { cn } from '../lib/utils';
 import { useDeviceMode } from '../context/DeviceContext';
 import { motion, AnimatePresence } from 'motion/react';
+import { supabase } from '../lib/supabase';
 
 export interface RoomReservation {
   id: string;
@@ -60,28 +61,52 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
   const [existingReservation, setExistingReservation] = useState<RoomReservation | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('room_reservations');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved).map((r: any) => 
-          r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r
-        );
-        setReservations(parsed);
-        localStorage.setItem('room_reservations', JSON.stringify(parsed));
-      } catch (e) {
-        console.error('Failed to parse room_reservations:', e);
+    const loadData = async () => {
+      let finalRes: RoomReservation[] = [];
+      let finalReg: RegularReservation[] = [];
+
+      if (supabase) {
+        try {
+          const [resData, regData] = await Promise.all([
+            supabase.from('room_reservations').select('*'),
+            supabase.from('room_regular_reservations').select('*')
+          ]);
+          if (!resData.error && resData.data) {
+            finalRes = resData.data;
+          }
+          if (!regData.error && regData.data) {
+            finalReg = regData.data;
+          }
+        } catch(e) {
+          console.error("Supabase fetch error:", e);
+        }
       }
-    }
-    const savedRegs = localStorage.getItem('room_regular_reservations');
-    if (savedRegs) {
-      try {
-        const parsed = JSON.parse(savedRegs).map((r: any) => 
-          r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r
-        );
-        setRegularReservations(parsed);
-        localStorage.setItem('room_regular_reservations', JSON.stringify(parsed));
-      } catch (e) {}
-    }
+
+      // fallback / merge
+      if (finalRes.length === 0) {
+        const saved = localStorage.getItem('room_reservations');
+        if (saved) {
+          try { finalRes = JSON.parse(saved) as RoomReservation[]; } catch(e){}
+        }
+      }
+      if (finalReg.length === 0) {
+        const savedRegs = localStorage.getItem('room_regular_reservations');
+        if (savedRegs) {
+          try { finalReg = JSON.parse(savedRegs) as RegularReservation[]; } catch(e){}
+        }
+      }
+
+      // map legacy room names
+      finalRes = finalRes.map(r => r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r);
+      finalReg = finalReg.map(r => r.roomName === '전담교실' ? { ...r, roomName: '전담실' } : r);
+
+      setReservations(finalRes);
+      setRegularReservations(finalReg);
+      localStorage.setItem('room_reservations', JSON.stringify(finalRes));
+      localStorage.setItem('room_regular_reservations', JSON.stringify(finalReg));
+    };
+
+    loadData();
   }, []);
 
   const startDate = startOfWeek(currentDate);
@@ -112,7 +137,7 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClassGrade || !regDate || !newTimeRange) return;
 
@@ -124,6 +149,8 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
     }
 
     const updated = [...reservations];
+    let newData: RoomReservation;
+
     if (editingId) {
       const idx = updated.findIndex(r => r.id === editingId);
       if (idx > -1) {
@@ -133,9 +160,12 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
           timeRange: newTimeRange, 
           date: regDate 
         };
+        newData = updated[idx];
+      } else {
+        return;
       }
     } else {
-      updated.push({
+      newData = {
         id: Math.random().toString(36).substr(2, 9),
         roomName: selectedRoom,
         date: regDate,
@@ -143,19 +173,39 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
         classGrade: newClassGrade,
         userName: user?.name || user?.email?.split('@')[0] || '사용자',
         userEmail: user?.email
-      });
+      };
+      updated.push(newData);
     }
+    
     setReservations(updated);
     localStorage.setItem('room_reservations', JSON.stringify(updated));
+    
+    if (supabase) {
+      try {
+        await supabase.from('room_reservations').upsert(newData);
+      } catch(e) {
+        console.error("Supabase upsert error:", e);
+      }
+    }
+
     setIsModalOpen(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!editingId) return;
     if (confirm('정말로 이 예약을 취소하시겠습니까?')) {
       const updated = reservations.filter(r => r.id !== editingId);
       setReservations(updated);
       localStorage.setItem('room_reservations', JSON.stringify(updated));
+      
+      if (supabase) {
+        try {
+          await supabase.from('room_reservations').delete().eq('id', editingId);
+        } catch(e) {
+          console.error("Supabase delete error:", e);
+        }
+      }
+
       setIsModalOpen(false);
     }
   };
