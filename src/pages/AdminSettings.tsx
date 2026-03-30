@@ -55,7 +55,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
             try {
                 const { data, error } = await supabase.from('room_regular_reservations').select('*');
                 if (!error && data) {
-                    finalReg = data;
+                    finalReg = data.map(d => ({
+                        id: d.id,
+                        roomName: d.room_name,
+                        dayOfWeek: d.day_of_week,
+                        timeRange: d.time_range,
+                        classGrade: d.class_grade,
+                        userName: d.user_name
+                    }));
                 }
             } catch(e) { console.error(e) }
         }
@@ -252,7 +259,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({ user }) => {
         
         if (targetData && supabase) {
             try {
-                await supabase.from('room_regular_reservations').upsert(targetData);
+                await supabase.from('room_regular_reservations').upsert({
+                    id: targetData.id,
+                    room_name: targetData.roomName,
+                    day_of_week: targetData.dayOfWeek,
+                    time_range: targetData.timeRange,
+                    class_grade: targetData.classGrade,
+                    user_name: targetData.userName
+                });
             } catch(e) { console.error(e); }
         }
 

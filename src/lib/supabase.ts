@@ -90,29 +90,32 @@ export const supabase = (!isPlaceholder && supabaseUrl && supabaseAnonKey)
  *
  * -- 7. 특별실 예약 테이블 생성
  * CREATE TABLE room_reservations (
- *     id TEXT PRIMARY KEY,
- *     "roomName" TEXT NOT NULL,
- *     date TEXT NOT NULL,
- *     "timeRange" TEXT NOT NULL,
- *     "classGrade" TEXT NOT NULL,
- *     "userName" TEXT NOT NULL,
- *     "userEmail" TEXT,
- *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ *   id text PRIMARY KEY,
+ *   room_name text NOT NULL,
+ *   date text NOT NULL,
+ *   time_range text NOT NULL,
+ *   class_grade text NOT NULL,
+ *   user_name text NOT NULL,
+ *   user_email text,
+ *   title text,
+ *   created_at timestamp with time zone default timezone('utc'::text, now()) NOT NULL
  * );
  * ALTER TABLE room_reservations ENABLE ROW LEVEL SECURITY;
- * CREATE POLICY "Enable access for all" ON room_reservations FOR ALL USING (true);
+ * CREATE POLICY "누구나 특별실 예약 조회 가능" ON room_reservations FOR SELECT USING (true);
+ * CREATE POLICY "누구나 특별실 예약 추가/수정/삭제 가능" ON room_reservations FOR ALL USING (true);
  *
  * -- 8. 정기 특별실 예약 테이블 생성
  * CREATE TABLE room_regular_reservations (
- *     id TEXT PRIMARY KEY,
- *     "roomName" TEXT NOT NULL,
- *     "dayOfWeek" INTEGER NOT NULL,
- *     "timeRange" TEXT NOT NULL,
- *     "classGrade" TEXT NOT NULL,
- *     "userName" TEXT NOT NULL,
- *     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+ *   id text PRIMARY KEY,
+ *   room_name text NOT NULL,
+ *   day_of_week integer NOT NULL,
+ *   time_range text NOT NULL,
+ *   class_grade text NOT NULL,
+ *   user_name text NOT NULL,
+ *   created_at timestamp with time zone default timezone('utc'::text, now()) NOT NULL
  * );
  * ALTER TABLE room_regular_reservations ENABLE ROW LEVEL SECURITY;
- * CREATE POLICY "Enable access for all" ON room_regular_reservations FOR ALL USING (true);
+ * CREATE POLICY "누구나 정기 시간표 조회 가능" ON room_regular_reservations FOR SELECT USING (true);
+ * CREATE POLICY "누구나 정기 시간표 추가/수정/삭제 가능" ON room_regular_reservations FOR ALL USING (true);
  */
 

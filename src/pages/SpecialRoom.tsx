@@ -72,10 +72,26 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
             supabase.from('room_regular_reservations').select('*')
           ]);
           if (!resData.error && resData.data) {
-            finalRes = resData.data;
+            finalRes = resData.data.map(d => ({
+              id: d.id,
+              roomName: d.room_name,
+              date: d.date,
+              timeRange: d.time_range,
+              classGrade: d.class_grade,
+              title: d.title,
+              userName: d.user_name,
+              userEmail: d.user_email
+            }));
           }
           if (!regData.error && regData.data) {
-            finalReg = regData.data;
+            finalReg = regData.data.map(d => ({
+              id: d.id,
+              roomName: d.room_name,
+              dayOfWeek: d.day_of_week,
+              timeRange: d.time_range,
+              classGrade: d.class_grade,
+              userName: d.user_name
+            }));
           }
         } catch(e) {
           console.error("Supabase fetch error:", e);
@@ -182,7 +198,16 @@ export const SpecialRoom: React.FC<SpecialRoomProps> = ({ user }) => {
     
     if (supabase) {
       try {
-        await supabase.from('room_reservations').upsert(newData);
+        await supabase.from('room_reservations').upsert({
+          id: newData.id,
+          room_name: newData.roomName,
+          date: newData.date,
+          time_range: newData.timeRange,
+          class_grade: newData.classGrade,
+          user_name: newData.userName,
+          user_email: newData.userEmail,
+          title: newData.title
+        });
       } catch(e) {
         console.error("Supabase upsert error:", e);
       }
